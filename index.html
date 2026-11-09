@@ -349,6 +349,10 @@
             <button @click="publish()" :disabled="publishing" class="py-2 px-5 bg-lime-400 text-black font-black uppercase tracking-wider disabled:opacity-50" x-text="publishing ? 'Publishing...' : 'Publish to live site'"></button>
         </div>
 
+        <button x-show="usingStarterLogin && adminTab !== 'login'" @click="adminTab = 'login'" class="w-full text-left border border-yellow-500 text-yellow-300 p-3 mb-6 text-sm">
+            You're still using the starter login. Choose your own here.
+        </button>
+
         <!-- Tabs -->
         <div class="flex flex-wrap gap-2 mb-6">
             <template x-for="tab in adminTabs" :key="tab.id">
@@ -472,6 +476,16 @@
             <button @click="addSection()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add a section</button>
         </div>
 
+        <!-- Login tab -->
+        <div x-show="adminTab === 'login'" class="max-w-md space-y-4">
+            <p class="text-sm text-zinc-400">Choose your own login. It replaces the starter login on every device, and capitals don't matter. It saves as soon as you press the button.</p>
+            <div><label class="adm-label">New login</label><input class="adm-input" type="password" autocomplete="new-password" x-model="newLogin" @input.stop></div>
+            <div><label class="adm-label">Type it again</label><input class="adm-input" type="password" autocomplete="new-password" x-model="newLoginRepeat" @input.stop></div>
+            <button @click="changeLogin()" :disabled="savingLogin" class="py-2 px-5 bg-lime-400 text-black font-black uppercase disabled:opacity-50" x-text="savingLogin ? 'Saving...' : 'Save new login'"></button>
+            <p x-show="loginMessage" class="text-sm" :class="loginState === 'error' ? 'text-red-400' : 'text-lime-400'" x-text="loginMessage"></p>
+            <div class="adm-warn text-sm text-zinc-300">Use something long and hard to guess, and don't reuse a password from anywhere else.</div>
+        </div>
+
         <!-- Help tab -->
         <div x-show="adminTab === 'help'" class="adm-guide space-y-3 text-zinc-300">
             <div class="border border-lime-400 p-4">
@@ -481,18 +495,23 @@
             <div class="border border-zinc-800 bg-zinc-950">
                 <button @click="toggleHelp('setup')" class="w-full text-left p-4 font-black uppercase">First-time setup: connect this device</button>
                 <div x-show="helpOpen === 'setup'" class="px-4 pb-4">
-                    <p>This only needs doing once on each phone or laptop. It needs the person who looks after the <b>Nafwise</b> GitHub account. It creates a private key that lets this page save to the website.</p>
+                    <p>This private key lets this page save to the website. The key is made once, and the same key works on your phone, PC and laptop.</p>
+                    <p><b>Part 1: the owner of the Nafwise GitHub account makes the key</b></p>
                     <ol>
-                        <li>Sign in to GitHub and open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">the new key page</a>. (The long way: profile picture, <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>.)</li>
-                        <li><b>Token name:</b> Secret DnB admin.</li>
-                        <li><b>Expiration:</b> 1 year.</li>
-                        <li><b>Resource owner:</b> Nafwise.</li>
-                        <li><b>Repository access:</b> choose <b>Only select repositories</b>, then pick <b>The-Secret-DnB-Society</b>.</li>
-                        <li><b>Permissions:</b> find <b>Contents</b> and set it to <b>Read and write</b>.</li>
-                        <li>Press <b>Generate token</b> and copy the key. GitHub only shows it once.</li>
+                        <li>On a computer signed in to GitHub, open <a href="https://github.com/settings/personal-access-tokens/new?name=Secret+DnB+admin&amp;description=Lets+the+site+admin+panel+publish+updates&amp;target_name=Nafwise&amp;expires_in=365&amp;contents=write" target="_blank" rel="noopener">this ready-filled key page</a>.</li>
+                        <li>Under <b>Repository access</b>, choose <b>Only select repositories</b>, then pick <b>The-Secret-DnB-Society</b>. This is the one part you have to set by hand.</li>
+                        <li>Check <b>Contents</b> shows <b>Read and write</b>, then press <b>Generate token</b> and copy the key. GitHub only shows it once.</li>
+                        <li>Send it to the admin in one private message. Delete the message once every device is connected.</li>
+                    </ol>
+                    <p><b>Part 2: the admin connects each device</b></p>
+                    <p>Do this once on each phone, PC or laptop you want to use. A device stays connected after you sign out.</p>
+                    <ol>
+                        <li>Open the website on that device, click the padlock and sign in.</li>
+                        <li>Copy the whole key from the message.</li>
                         <li>Paste it in the box below and press <b>Connect</b>.</li>
                     </ol>
-                    <div class="adm-warn">Treat this key like a bank card. Anyone who has it can change the website. Don't post it, email it around, or put it anywhere on the page. If it gets out, delete it on the same GitHub page and make a new one.</div>
+                    <p>Each web browser counts as its own device, so use the same one each time.</p>
+                    <div class="adm-warn">Treat this key like a bank card. Anyone who has it can change the website. Never post it publicly or put it anywhere on the page. If it gets out, delete it at <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">GitHub's key page</a> and make a new one.</div>
                     <div class="mt-4">
                         <label class="adm-label">GitHub key</label>
                         <input class="adm-input" type="password" autocomplete="off" x-model.trim="ghTokenInput" @input.stop :placeholder="ghToken ? 'Connected. Paste a new key to replace it.' : 'Paste the key here'">
@@ -579,6 +598,9 @@
                         <li><b>My change isn't showing:</b> wait a couple of minutes and refresh the page.</li>
                         <li><b>It says the key isn't working:</b> the key has probably run out. Go through First-time setup again to make a new one.</li>
                         <li><b>I made a mistake:</b> if you haven't published, just refresh the page and your changes disappear. If you have, change it back and publish again.</li>
+                        <li><b>It works on one device but says another needs connecting:</b> paste the same key into First-time setup on that device. If you no longer have the message, the owner of the Nafwise GitHub account will need to make a new key.</li>
+                        <li><b>I changed my login and it isn't working yet:</b> a new login takes about a minute to reach the site. Wait, then try again.</li>
+                        <li><b>I forgot my login:</b> ask the owner of the Nafwise GitHub account to delete the file called <b>admin.json</b> from the website's GitHub page. The starter login will then work again, and you can choose a new one.</li>
                     </ul>
                 </div>
             </div>
@@ -603,8 +625,8 @@
                 <i data-lucide="scan" class="w-5 h-5"></i> Door Scanner
             </button>
             <form @submit.prevent="adminSignIn()" class="mt-6 pt-6 border-t border-zinc-800 space-y-3">
-                <label class="adm-label">Admin name</label>
-                <input x-model="crewName" type="text" autocomplete="off" autocapitalize="off" class="adm-input" placeholder="Enter name" />
+                <label class="adm-label">Admin login</label>
+                <input x-model="crewName" type="password" autocomplete="off" autocapitalize="off" class="adm-input" placeholder="Enter login" />
                 <p x-show="crewError" class="text-sm text-red-400" x-text="crewError"></p>
                 <button type="submit" class="w-full py-3 border border-zinc-600 hover:border-white hover:bg-white hover:text-black font-bold uppercase tracking-wider transition-all">
                     Sign in to admin
@@ -685,10 +707,12 @@
             iconTimer = setTimeout(() => lucide.createIcons(), 30);
         }).observe(document.body, { childList: true, subtree: true });
 
-        // The name check only opens the admin panel. It is visible to anyone who
-        // reads this file, so the real protection is the private GitHub key that
-        // Publish needs, which is stored only on the admin's own device.
+        // The login only opens the admin panel. The starter login is visible to
+        // anyone who reads this file until the admin replaces it, and the replacement
+        // is stored as a salted hash in the public admin.json. The real protection is
+        // the private GitHub key that saving needs, kept only on the admin's device.
         const ADMIN_NAME = 'motze';
+        const LOGIN_ITERATIONS = 600000;
         const GITHUB = { owner: 'Nafwise', repo: 'The-Secret-DnB-Society', branch: 'main' };
         const GITHUB_KEY_STORAGE = 'secretDnbGithubKey';
         const SECRET_KEY_PATTERN = /\b[sr]k_(live|test)_/;
@@ -711,8 +735,16 @@
                     { id: 'merch', label: 'Merch' },
                     { id: 'text', label: 'Page Text' },
                     { id: 'sections', label: 'Sections' },
+                    { id: 'login', label: 'My Login' },
                     { id: 'help', label: 'Help & Guides' }
                 ],
+                signingIn: false,
+                usingStarterLogin: false,
+                newLogin: '',
+                newLoginRepeat: '',
+                savingLogin: false,
+                loginState: '',
+                loginMessage: '',
                 helpOpen: 'setup',
                 dirty: false,
                 publishing: false,
@@ -881,16 +913,80 @@
                     this.crewModalOpen = true;
                 },
 
-                adminSignIn() {
-                    if (this.crewName.trim().toLowerCase() !== ADMIN_NAME) {
-                        this.crewError = 'Name not recognised.';
-                        return;
+                async adminSignIn() {
+                    if (this.signingIn) return;
+                    this.signingIn = true;
+                    this.crewError = '';
+                    try {
+                        const attempt = this.crewName.trim().toLowerCase();
+                        const saved = await this.loadSavedLogin();
+                        const correct = saved
+                            ? await this.hashLogin(attempt, Uint8Array.from(atob(saved.salt), c => c.charCodeAt(0)), saved.iterations) === saved.hash
+                            : attempt === ADMIN_NAME;
+                        if (!correct) {
+                            this.crewError = 'Login not recognised.';
+                            return;
+                        }
+                        this.usingStarterLogin = !saved;
+                        this.isAdmin = true;
+                        this.crewModalOpen = false;
+                        this.adminTab = this.ghToken ? 'events' : 'help';
+                        this.view = 'admin';
+                        window.scrollTo(0,0);
+                    } catch (e) {
+                        this.crewError = 'Something went wrong. Please try again.';
+                    } finally {
+                        this.signingIn = false;
                     }
-                    this.isAdmin = true;
-                    this.crewModalOpen = false;
-                    this.adminTab = this.ghToken ? 'events' : 'help';
-                    this.view = 'admin';
-                    window.scrollTo(0,0);
+                },
+
+                // Checked at each sign-in. With no admin.json the starter login applies.
+                async loadSavedLogin() {
+                    try {
+                        const res = await fetch('admin.json?t=' + Date.now(), { cache: 'no-store' });
+                        if (!res.ok) return null;
+                        const saved = await res.json();
+                        return saved && saved.salt && saved.hash && saved.iterations ? saved : null;
+                    } catch (e) {
+                        return null;
+                    }
+                },
+
+                async hashLogin(login, salt, iterations) {
+                    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(login), 'PBKDF2', false, ['deriveBits']);
+                    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
+                    return btoa(String.fromCharCode(...new Uint8Array(bits)));
+                },
+
+                async changeLogin() {
+                    if (this.savingLogin) return;
+                    const login = this.newLogin.trim().toLowerCase();
+                    const fail = (message) => { this.loginState = 'error'; this.loginMessage = message; };
+
+                    if (!this.ghToken) return fail('This device needs connecting first. See First-time setup in Help & Guides.');
+                    if (login.length < 6) return fail('Please use at least 6 characters.');
+                    if (login !== this.newLoginRepeat.trim().toLowerCase()) return fail("The two boxes don't match.");
+
+                    this.savingLogin = true;
+                    this.loginState = '';
+                    this.loginMessage = 'Saving...';
+                    try {
+                        const salt = crypto.getRandomValues(new Uint8Array(16));
+                        const hash = await this.hashLogin(login, salt, LOGIN_ITERATIONS);
+                        const record = { salt: btoa(String.fromCharCode(...salt)), iterations: LOGIN_ITERATIONS, hash };
+                        await this.commitFiles('Update admin login', [
+                            { path: 'admin.json', mode: '100644', type: 'blob', content: JSON.stringify(record, null, 2) + '\n' }
+                        ]);
+                        this.newLogin = '';
+                        this.newLoginRepeat = '';
+                        this.usingStarterLogin = false;
+                        this.loginState = 'ok';
+                        this.loginMessage = 'Saved! Your new login will work in about a minute.';
+                    } catch (err) {
+                        fail(this.githubProblem(err));
+                    } finally {
+                        this.savingLogin = false;
+                    }
                 },
 
                 adminSignOut() {
@@ -1023,7 +1119,16 @@
                     this.connectMessage = 'Key removed from this device.';
                 },
 
-                // Saves everything as one commit, so one publish is one site rebuild.
+                // Saves all the files as one commit, so one save is one site rebuild.
+                async commitFiles(message, tree) {
+                    const ref = await this.github(`/git/ref/heads/${GITHUB.branch}`);
+                    const headSha = ref.object.sha;
+                    const headCommit = await this.github(`/git/commits/${headSha}`);
+                    const newTree = await this.github('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: headCommit.tree.sha, tree }) });
+                    const commit = await this.github('/git/commits', { method: 'POST', body: JSON.stringify({ message, tree: newTree.sha, parents: [headSha] }) });
+                    await this.github(`/git/refs/heads/${GITHUB.branch}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
+                },
+
                 async publish() {
                     if (this.publishing) return;
                     this.publishState = '';
@@ -1065,19 +1170,13 @@
                             item.image = paths[item.image];
                         });
 
-                        const ref = await this.github(`/git/ref/heads/${GITHUB.branch}`);
-                        const headSha = ref.object.sha;
-                        const headCommit = await this.github(`/git/commits/${headSha}`);
-
                         const tree = [{ path: 'content.json', mode: '100644', type: 'blob', content: JSON.stringify(content, null, 2) + '\n' }];
                         for (const image of newImages) {
                             const blob = await this.github('/git/blobs', { method: 'POST', body: JSON.stringify({ content: image.base64, encoding: 'base64' }) });
                             tree.push({ path: image.path, mode: '100644', type: 'blob', sha: blob.sha });
                         }
 
-                        const newTree = await this.github('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: headCommit.tree.sha, tree }) });
-                        const commit = await this.github('/git/commits', { method: 'POST', body: JSON.stringify({ message: 'Update site content from admin panel', tree: newTree.sha, parents: [headSha] }) });
-                        await this.github(`/git/refs/heads/${GITHUB.branch}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
+                        await this.commitFiles('Update site content from admin panel', tree);
 
                         this.uploadedImages = paths;
                         this.dirty = false;
