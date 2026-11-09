@@ -6,16 +6,16 @@
     <title>The Secret DnB Collective</title>
     
     <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     
     <!-- Load Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     
     <!-- Load Alpine.js for React-like interactivity without the build step -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
 
     <!-- Load HTML5 QR Code Scanner -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
 
     <style>
         body { background-color: #09090b; color: #e4e4e7; }
@@ -23,9 +23,23 @@
         
         /* Ensure the scanner video feed fits cleanly inside our UI */
         #qr-reader video { object-fit: cover; width: 100%; border-radius: 0.5rem; }
+
+        /* Admin panel */
+        .adm-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #a1a1aa; margin-bottom: 0.25rem; }
+        .adm-input { width: 100%; background: #18181b; border: 1px solid #3f3f46; color: #fff; padding: 0.7rem; font-size: 16px; }
+        .adm-input:focus { outline: none; border-color: #a3e635; }
+        .adm-btn { padding: 0.5rem 0.9rem; border: 1px solid #52525b; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #e4e4e7; }
+        .adm-btn:hover { border-color: #fff; color: #fff; }
+        .adm-guide ol { list-style: decimal; padding-left: 1.4rem; margin: 0.75rem 0; }
+        .adm-guide ul { list-style: disc; padding-left: 1.4rem; margin: 0.75rem 0; }
+        .adm-guide li { margin-bottom: 0.5rem; }
+        .adm-guide p { margin: 0.75rem 0; }
+        .adm-guide b { color: #fff; }
+        .adm-guide a { color: #a3e635; text-decoration: underline; }
+        .adm-warn { border-left: 3px solid #ef4444; background: #27272a; padding: 0.75rem 1rem; margin: 0.75rem 0; }
     </style>
 </head>
-<body class="selection-lime font-sans min-h-screen flex flex-col" x-data="secretApp()">
+<body class="selection-lime font-sans min-h-screen flex flex-col" x-data="secretApp()" x-effect="document.title = text.pageTitle">
 
     <!-- HEADER -->
     <header class="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
@@ -33,7 +47,7 @@
             <div class="flex items-center gap-2 cursor-pointer group" @click="view = 'home'">
                 <i data-lucide="skull" class="text-lime-400"></i>
                 <h1 class="text-2xl font-black tracking-tighter text-white uppercase">
-                    The Secret <span class="text-lime-400">DnB</span>
+                    <span x-text="text.brandBefore"></span> <span class="text-lime-400" x-text="text.brandHighlight"></span>
                 </h1>
             </div>
             
@@ -47,30 +61,33 @@
     </header>
 
     <!-- HOME VIEW -->
-    <main x-show="view === 'home'" class="max-w-6xl mx-auto px-6 py-12 space-y-24 flex-grow">
-        
-        <!-- Hero Section -->
-        <section class="relative h-[60vh] rounded-2xl overflow-hidden group">
-            <img :src="events[0].image" alt="Hero" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-40"/>
+    <main x-show="view === 'home' && contentReady" class="max-w-6xl mx-auto px-6 py-12 space-y-24 flex-grow w-full" style="display: none;">
+
+        <!-- Hero Section (always shows the first event in the list) -->
+        <section x-show="events.length > 0" class="relative h-[60vh] rounded-2xl overflow-hidden group">
+            <img :src="hero.image" alt="Hero" class="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 opacity-40"/>
             <div class="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent"></div>
             <div class="absolute bottom-0 left-0 p-8 md:p-12">
-                <div class="inline-block px-3 py-1 bg-lime-400 text-black font-bold text-sm tracking-widest uppercase mb-4">Next Event</div>
-                <h2 class="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 leading-none" x-text="events[0].title"></h2>
+                <div class="inline-block px-3 py-1 bg-lime-400 text-black font-bold text-sm tracking-widest uppercase mb-4" x-text="text.heroBadge"></div>
+                <h2 class="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase mb-4 leading-none" x-text="hero.title"></h2>
                 <div class="flex flex-wrap gap-4 text-zinc-300 font-medium mb-8">
-                    <span class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-lime-400"></i> <span x-text="events[0].date"></span></span>
-                    <span class="flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-lime-400"></i> <span x-text="events[0].location"></span></span>
+                    <span class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-lime-400"></i> <span x-text="hero.date"></span></span>
+                    <span class="flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-lime-400"></i> <span x-text="hero.location"></span></span>
                 </div>
-                <button @click="addToCart(events[0])" class="bg-white hover:bg-lime-400 text-black font-bold py-4 px-8 uppercase tracking-wider flex items-center gap-2 transition-all duration-300">
+                <button x-show="!hero.isUnderground" @click="addToCart(hero)" class="bg-white hover:bg-lime-400 text-black font-bold py-4 px-8 uppercase tracking-wider flex items-center gap-2 transition-all duration-300">
                     <i data-lucide="ticket" class="w-5 h-5"></i>
-                    Secure Ticket - £<span x-text="events[0].price.toFixed(2)"></span>
+                    <span x-text="text.heroButton"></span> - £<span x-text="money(hero.price)"></span>
+                </button>
+                <button x-show="hero.isUnderground" @click="rsvpModalOpen = true" class="bg-white hover:bg-lime-400 text-black font-bold py-4 px-8 uppercase tracking-wider transition-all duration-300">
+                    Request RSVP
                 </button>
             </div>
         </section>
 
         <!-- Events Grid -->
-        <section>
+        <section x-show="events.length > 0">
             <div class="flex items-center gap-4 mb-8">
-                <h3 class="text-3xl font-black uppercase tracking-tighter">Upcoming Intel</h3>
+                <h3 class="text-3xl font-black uppercase tracking-tighter" x-text="text.eventsHeading"></h3>
                 <div class="h-px bg-zinc-800 flex-1"></div>
             </div>
             
@@ -98,7 +115,7 @@
                             
                             <template x-if="!event.isUnderground">
                                 <button @click="addToCart(event)" class="w-full py-3 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider transition-all">
-                                    Buy Ticket - £<span x-text="event.price.toFixed(2)"></span>
+                                    Buy Ticket - £<span x-text="money(event.price)"></span>
                                 </button>
                             </template>
                         </div>
@@ -108,9 +125,9 @@
         </section>
 
         <!-- Merch Grid -->
-        <section>
+        <section x-show="merch.length > 0">
             <div class="flex items-center gap-4 mb-8">
-                <h3 class="text-3xl font-black uppercase tracking-tighter">Hardware (Merch)</h3>
+                <h3 class="text-3xl font-black uppercase tracking-tighter" x-text="text.merchHeading"></h3>
                 <div class="h-px bg-zinc-800 flex-1"></div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -121,7 +138,7 @@
                             <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                         </div>
                         <h4 class="font-bold uppercase tracking-tight mb-1" x-text="item.title"></h4>
-                        <p class="text-lime-400 font-mono mb-3">£<span x-text="item.price.toFixed(2)"></span></p>
+                        <p class="text-lime-400 font-mono mb-3">£<span x-text="money(item.price)"></span></p>
                         <button @click="addToCart(item)" class="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
                             <i data-lucide="shirt" class="w-3 h-3"></i> Add to Cart
                         </button>
@@ -129,6 +146,23 @@
                 </template>
             </div>
         </section>
+
+        <!-- Extra sections added from the admin panel -->
+        <template x-for="section in sections" :key="section.id">
+            <section>
+                <div class="flex items-center gap-4 mb-8">
+                    <h3 class="text-3xl font-black uppercase tracking-tighter" x-text="section.heading"></h3>
+                    <div class="h-px bg-zinc-800 flex-1"></div>
+                </div>
+                <div class="grid gap-8 items-center" :class="section.image ? 'md:grid-cols-2' : ''">
+                    <img x-show="section.image" :src="section.image" :alt="section.heading" class="w-full border border-zinc-800" />
+                    <div>
+                        <p class="text-zinc-300 whitespace-pre-line leading-relaxed" x-text="section.body"></p>
+                        <a x-show="section.buttonText && safeUrl(section.buttonLink)" :href="safeUrl(section.buttonLink)" target="_blank" rel="noopener" class="inline-block mt-6 py-3 px-6 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider transition-all" x-text="section.buttonText"></a>
+                    </div>
+                </div>
+            </section>
+        </template>
     </main>
 
     <!-- CART VIEW -->
@@ -152,14 +186,14 @@
                         <div class="flex items-center justify-between p-4 border border-zinc-800 bg-zinc-900">
                             <div class="flex items-center gap-4">
                                 <template x-if="item.type === 'ticket'">
-                                    <i data-lucide="ticket" class="text-lime-400"></i>
+                                    <span><i data-lucide="ticket" class="text-lime-400"></i></span>
                                 </template>
                                 <template x-if="item.type === 'merch'">
-                                    <i data-lucide="shirt" class="text-zinc-500"></i>
+                                    <span><i data-lucide="shirt" class="text-zinc-500"></i></span>
                                 </template>
                                 <div>
                                     <h4 class="font-bold uppercase" x-text="item.title"></h4>
-                                    <p class="text-sm text-zinc-400 font-mono">£<span x-text="item.price.toFixed(2)"></span></p>
+                                    <p class="text-sm text-zinc-400 font-mono">£<span x-text="money(item.price)"></span></p>
                                 </div>
                             </div>
                             <button @click="removeFromCart(index)" class="text-zinc-500 hover:text-red-500 transition-colors p-2">
@@ -172,7 +206,7 @@
                 <div class="border-t border-zinc-800 pt-8 flex flex-col items-end">
                     <div class="flex justify-between w-full md:w-1/2 items-center mb-6">
                         <span class="text-zinc-400 uppercase tracking-widest font-bold">Total</span>
-                        <span class="text-3xl font-black font-mono">£<span x-text="getCartTotal().toFixed(2)"></span></span>
+                        <span class="text-3xl font-black font-mono">£<span x-text="money(getCartTotal())"></span></span>
                     </div>
                     <button @click="checkout()" class="w-full md:w-1/2 py-4 bg-white text-black hover:bg-lime-400 font-black uppercase tracking-widest text-lg flex justify-center items-center gap-2 transition-all">
                         Checkout (Stripe) <i data-lucide="chevron-right" class="w-5 h-5"></i>
@@ -183,6 +217,28 @@
                 </div>
             </div>
         </template>
+    </main>
+
+    <!-- PAY VIEW (Stripe Payment Links) -->
+    <main x-show="view === 'pay'" class="max-w-3xl mx-auto px-6 py-12 min-h-[80vh] w-full" style="display: none;">
+        <h2 class="text-4xl font-black uppercase tracking-tighter mb-2">Pay Securely</h2>
+        <p class="text-zinc-400 mb-8">Each item is paid for separately on Stripe's secure page.</p>
+        <div class="space-y-4">
+            <template x-for="line in payLines" :key="line.item.id">
+                <div class="flex flex-wrap items-center justify-between gap-4 p-4 border border-zinc-800 bg-zinc-900">
+                    <div>
+                        <h4 class="font-bold uppercase" x-text="line.item.title"></h4>
+                        <p class="text-sm text-zinc-400 font-mono">
+                            <span x-text="line.qty"></span> x £<span x-text="money(line.item.price)"></span>
+                            <span x-show="line.qty > 1"> (choose this quantity on the Stripe page)</span>
+                        </p>
+                    </div>
+                    <a x-show="safeUrl(line.item.stripeLink)" :href="safeUrl(line.item.stripeLink)" target="_blank" rel="noopener" class="py-3 px-6 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider">Pay on Stripe</a>
+                    <span x-show="!safeUrl(line.item.stripeLink)" class="text-sm text-zinc-500 uppercase tracking-widest">Not on sale online yet</span>
+                </div>
+            </template>
+        </div>
+        <button @click="view = 'cart'" class="mt-8 text-lime-400 hover:text-lime-300 font-bold uppercase">Back to cart</button>
     </main>
 
     <!-- SUCCESS VIEW -->
@@ -277,6 +333,286 @@
         </p>
     </main>
 
+    <!-- ADMIN VIEW -->
+    <main x-show="view === 'admin'" @input="dirty = true" class="max-w-4xl mx-auto px-4 md:px-6 py-8 w-full flex-grow" style="display: none;">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 class="text-3xl font-black uppercase tracking-tighter">Admin</h2>
+            <div class="flex gap-2">
+                <button @click="view = 'home'; window.scrollTo(0,0)" class="adm-btn">Preview site</button>
+                <button @click="adminSignOut()" class="adm-btn">Sign out</button>
+            </div>
+        </div>
+
+        <!-- Publish bar -->
+        <div class="sticky top-[65px] z-40 bg-zinc-900 border border-zinc-700 p-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm" :class="publishState === 'error' ? 'text-red-400' : 'text-zinc-300'" x-text="publishMessage || (dirty ? 'You have changes that are not live yet.' : 'Everything is up to date.')"></p>
+            <button @click="publish()" :disabled="publishing" class="py-2 px-5 bg-lime-400 text-black font-black uppercase tracking-wider disabled:opacity-50" x-text="publishing ? 'Publishing...' : 'Publish to live site'"></button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex flex-wrap gap-2 mb-6">
+            <template x-for="tab in adminTabs" :key="tab.id">
+                <button @click="adminTab = tab.id" class="adm-btn" :class="adminTab === tab.id ? 'bg-lime-400 !text-black !border-lime-400' : ''" x-text="tab.label"></button>
+            </template>
+        </div>
+
+        <!-- Events tab -->
+        <div x-show="adminTab === 'events'" class="space-y-6">
+            <p class="text-sm text-zinc-400">The event at the top of this list is the big "Next Event" banner on the home page.</p>
+            <template x-for="(ev, i) in events" :key="ev.id">
+                <div class="border border-zinc-800 bg-zinc-950 p-4 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <h3 class="font-black uppercase" x-text="ev.title || 'Untitled event'"></h3>
+                        <div class="flex gap-2">
+                            <button @click="moveItem(events, i, -1)" class="adm-btn">Up</button>
+                            <button @click="moveItem(events, i, 1)" class="adm-btn">Down</button>
+                            <button @click="removeItem(events, i)" class="adm-btn !text-red-400">Delete</button>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div><label class="adm-label">Event name</label><input class="adm-input" x-model="ev.title"></div>
+                        <div><label class="adm-label">Date and time</label><input class="adm-input" x-model="ev.date" placeholder="OCT 24 / 22:00 - 05:00"></div>
+                        <div><label class="adm-label">Location</label><input class="adm-input" x-model="ev.location"></div>
+                        <div><label class="adm-label">Ticket price (£)</label><input class="adm-input" type="number" min="0" step="0.01" inputmode="decimal" x-model.number="ev.price" :disabled="ev.isUnderground"></div>
+                    </div>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="ev.isUnderground" @change="ev.type = ev.isUnderground ? 'rsvp' : 'ticket'"> Underground event (shows "Request RSVP" instead of a price)</label>
+                    <div x-show="!ev.isUnderground">
+                        <label class="adm-label">Stripe payment link</label>
+                        <input class="adm-input" x-model.trim="ev.stripeLink" placeholder="https://buy.stripe.com/...">
+                        <p x-show="linkProblem(ev.stripeLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(ev.stripeLink)"></p>
+                        <p x-show="ev.stripeLink && !linkProblem(ev.stripeLink)" class="text-xs text-zinc-500 mt-1">Stripe charges the price set on this link. If you change the price above, see the "Change a price" guide.</p>
+                    </div>
+                    <div>
+                        <label class="adm-label">Photo</label>
+                        <div class="flex items-center gap-4">
+                            <img x-show="ev.image" :src="ev.image" alt="" class="w-24 h-16 object-cover border border-zinc-700">
+                            <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, ev)">
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <button @click="addEvent()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add an event</button>
+        </div>
+
+        <!-- Merch tab -->
+        <div x-show="adminTab === 'merch'" class="space-y-6">
+            <template x-for="(it, i) in merch" :key="it.id">
+                <div class="border border-zinc-800 bg-zinc-950 p-4 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <h3 class="font-black uppercase" x-text="it.title || 'Untitled item'"></h3>
+                        <div class="flex gap-2">
+                            <button @click="moveItem(merch, i, -1)" class="adm-btn">Up</button>
+                            <button @click="moveItem(merch, i, 1)" class="adm-btn">Down</button>
+                            <button @click="removeItem(merch, i)" class="adm-btn !text-red-400">Delete</button>
+                        </div>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div><label class="adm-label">Item name</label><input class="adm-input" x-model="it.title"></div>
+                        <div><label class="adm-label">Price (£)</label><input class="adm-input" type="number" min="0" step="0.01" inputmode="decimal" x-model.number="it.price"></div>
+                    </div>
+                    <div>
+                        <label class="adm-label">Stripe payment link</label>
+                        <input class="adm-input" x-model.trim="it.stripeLink" placeholder="https://buy.stripe.com/...">
+                        <p x-show="linkProblem(it.stripeLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(it.stripeLink)"></p>
+                        <p x-show="it.stripeLink && !linkProblem(it.stripeLink)" class="text-xs text-zinc-500 mt-1">Stripe charges the price set on this link. If you change the price above, see the "Change a price" guide.</p>
+                    </div>
+                    <div>
+                        <label class="adm-label">Photo</label>
+                        <div class="flex items-center gap-4">
+                            <img x-show="it.image" :src="it.image" alt="" class="w-16 h-16 object-cover border border-zinc-700">
+                            <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, it)">
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <button @click="addMerch()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add a merch item</button>
+        </div>
+
+        <!-- Page text tab -->
+        <div x-show="adminTab === 'text'" class="grid md:grid-cols-2 gap-4">
+            <div><label class="adm-label">Browser tab title</label><input class="adm-input" x-model="text.pageTitle"></div>
+            <div><label class="adm-label">Logo text</label><input class="adm-input" x-model="text.brandBefore"></div>
+            <div><label class="adm-label">Logo text (green part)</label><input class="adm-input" x-model="text.brandHighlight"></div>
+            <div><label class="adm-label">Banner label</label><input class="adm-input" x-model="text.heroBadge"></div>
+            <div><label class="adm-label">Banner button</label><input class="adm-input" x-model="text.heroButton"></div>
+            <div><label class="adm-label">Events heading</label><input class="adm-input" x-model="text.eventsHeading"></div>
+            <div><label class="adm-label">Merch heading</label><input class="adm-input" x-model="text.merchHeading"></div>
+            <div class="md:col-span-2"><label class="adm-label">Footer text</label><input class="adm-input" x-model="text.footer"></div>
+        </div>
+
+        <!-- Extra sections tab -->
+        <div x-show="adminTab === 'sections'" class="space-y-6">
+            <p class="text-sm text-zinc-400">Add new blocks to the home page, such as About, Line-up or Gallery. They appear underneath the merch.</p>
+            <template x-for="(s, i) in sections" :key="s.id">
+                <div class="border border-zinc-800 bg-zinc-950 p-4 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
+                        <h3 class="font-black uppercase" x-text="s.heading || 'Untitled section'"></h3>
+                        <div class="flex gap-2">
+                            <button @click="moveItem(sections, i, -1)" class="adm-btn">Up</button>
+                            <button @click="moveItem(sections, i, 1)" class="adm-btn">Down</button>
+                            <button @click="removeItem(sections, i)" class="adm-btn !text-red-400">Delete</button>
+                        </div>
+                    </div>
+                    <div><label class="adm-label">Heading</label><input class="adm-input" x-model="s.heading"></div>
+                    <div><label class="adm-label">Text</label><textarea class="adm-input" rows="5" x-model="s.body"></textarea></div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div><label class="adm-label">Button words (optional)</label><input class="adm-input" x-model="s.buttonText"></div>
+                        <div><label class="adm-label">Button link (optional)</label><input class="adm-input" x-model.trim="s.buttonLink" placeholder="https://..."></div>
+                    </div>
+                    <div>
+                        <label class="adm-label">Photo (optional)</label>
+                        <div class="flex items-center gap-4">
+                            <img x-show="s.image" :src="s.image" alt="" class="w-24 h-16 object-cover border border-zinc-700">
+                            <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, s)">
+                            <button x-show="s.image" @click="s.image = ''; dirty = true" class="adm-btn">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <button @click="addSection()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add a section</button>
+        </div>
+
+        <!-- Help tab -->
+        <div x-show="adminTab === 'help'" class="adm-guide space-y-3 text-zinc-300">
+            <div class="border border-lime-400 p-4">
+                <b>The golden rule:</b> nothing you change reaches the public site until you press <b>Publish to live site</b>. After publishing, wait about a minute, then refresh the page.
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('setup')" class="w-full text-left p-4 font-black uppercase">First-time setup: connect this device</button>
+                <div x-show="helpOpen === 'setup'" class="px-4 pb-4">
+                    <p>This only needs doing once on each phone or laptop. It needs the person who looks after the <b>Nafwise</b> GitHub account. It creates a private key that lets this page save to the website.</p>
+                    <ol>
+                        <li>Sign in to GitHub and open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">the new key page</a>. (The long way: profile picture, <b>Settings</b>, <b>Developer settings</b>, <b>Personal access tokens</b>, <b>Fine-grained tokens</b>, <b>Generate new token</b>.)</li>
+                        <li><b>Token name:</b> Secret DnB admin.</li>
+                        <li><b>Expiration:</b> 1 year.</li>
+                        <li><b>Resource owner:</b> Nafwise.</li>
+                        <li><b>Repository access:</b> choose <b>Only select repositories</b>, then pick <b>The-Secret-DnB-Society</b>.</li>
+                        <li><b>Permissions:</b> find <b>Contents</b> and set it to <b>Read and write</b>.</li>
+                        <li>Press <b>Generate token</b> and copy the key. GitHub only shows it once.</li>
+                        <li>Paste it in the box below and press <b>Connect</b>.</li>
+                    </ol>
+                    <div class="adm-warn">Treat this key like a bank card. Anyone who has it can change the website. Don't post it, email it around, or put it anywhere on the page. If it gets out, delete it on the same GitHub page and make a new one.</div>
+                    <div class="mt-4">
+                        <label class="adm-label">GitHub key</label>
+                        <input class="adm-input" type="password" autocomplete="off" x-model.trim="ghTokenInput" @input.stop :placeholder="ghToken ? 'Connected. Paste a new key to replace it.' : 'Paste the key here'">
+                        <div class="flex flex-wrap items-center gap-3 mt-3">
+                            <button @click="connectGitHub()" class="py-2 px-5 bg-lime-400 text-black font-black uppercase">Connect</button>
+                            <button x-show="ghToken" @click="disconnectGitHub()" class="adm-btn">Remove key from this device</button>
+                        </div>
+                        <p class="text-sm mt-2" x-text="connectMessage || (ghToken ? 'This device is connected.' : 'This device is not connected yet.')"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('stripe')" class="w-full text-left p-4 font-black uppercase">Connect Stripe and take payments</button>
+                <div x-show="helpOpen === 'stripe'" class="px-4 pb-4">
+                    <p>You make one Stripe <b>Payment Link</b> for each thing you sell, then paste it next to that item here. This needs no extra hosting.</p>
+                    <p><b>Set up Stripe</b></p>
+                    <ol>
+                        <li>Make an account at <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">stripe.com</a> and fill in your business and bank details so you can be paid.</li>
+                    </ol>
+                    <p><b>Make a link for each ticket or merch item</b></p>
+                    <ol>
+                        <li>In Stripe, open <a href="https://dashboard.stripe.com/payment-links" target="_blank" rel="noopener">Payment Links</a> and press <b>+ New</b>.</li>
+                        <li>Press <b>+ Add a new product</b>. Enter the name, photo and price in <b>GBP</b>, then press <b>Add product</b>.</li>
+                        <li>Look through the options on that screen. Turn on the one that lets customers <b>adjust the quantity</b>. For merch, turn on <b>collecting the customer's address</b> so you know where to post it.</li>
+                        <li>Press <b>Create link</b>, then copy the link.</li>
+                        <li>Back here, open <b>Events</b> or <b>Merch</b>, paste it into <b>Stripe payment link</b> on the right item, and press <b>Publish to live site</b>.</li>
+                        <li>Buy one yourself to check it works, then refund it from Stripe.</li>
+                    </ol>
+                    <div class="adm-warn"><b>Never paste a Stripe "secret key"</b> (it starts with <b>sk_</b>) into this page. Only ever paste Payment Links.</div>
+                    <p><b>Good to know</b></p>
+                    <ul>
+                        <li>Until an item has a link, its checkout is only a demonstration and takes no money.</li>
+                        <li>Every sale appears under <b>Payments</b> in Stripe. Use that as your guest list on the door.</li>
+                        <li>QR tickets are not created automatically from Stripe sales yet. That needs a small server, and the door scanner is a demonstration until then.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('images')" class="w-full text-left p-4 font-black uppercase">Add or change a photo</button>
+                <div x-show="helpOpen === 'images'" class="px-4 pb-4">
+                    <ol>
+                        <li>Open <b>Events</b>, <b>Merch</b> or <b>Sections</b> and find the item.</li>
+                        <li>Under <b>Photo</b>, press the choose-file button and pick a picture. Big photos are shrunk for you.</li>
+                        <li>Press <b>Preview site</b> to see how it looks, then <b>Publish to live site</b>.</li>
+                    </ol>
+                    <ul>
+                        <li>Wide photos suit events. Square photos suit merch.</li>
+                        <li>Only use pictures you took or have permission to use.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('pricing')" class="w-full text-left p-4 font-black uppercase">Change a price</button>
+                <div x-show="helpOpen === 'pricing'" class="px-4 pb-4">
+                    <ol>
+                        <li>Open <b>Events</b> or <b>Merch</b> and type the new price, for example <b>17.50</b>. Leave out the £ sign.</li>
+                        <li>Press <b>Publish to live site</b>.</li>
+                    </ol>
+                    <div class="adm-warn"><b>If the item has a Stripe link, the price needs changing there too.</b> This page only shows the price. Stripe decides what the customer actually pays. Make a new Payment Link at the new price, paste it over the old one here, publish, then turn off the old link in Stripe.</div>
+                </div>
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('adding')" class="w-full text-left p-4 font-black uppercase">Add things to the page</button>
+                <div x-show="helpOpen === 'adding'" class="px-4 pb-4">
+                    <ul>
+                        <li><b>New event:</b> open <b>Events</b>, press <b>+ Add an event</b>, fill it in.</li>
+                        <li><b>Change the big banner:</b> use <b>Up</b> to move an event to the top of the list.</li>
+                        <li><b>New merch:</b> open <b>Merch</b>, press <b>+ Add a merch item</b>.</li>
+                        <li><b>New block, like About or Line-up:</b> open <b>Sections</b>, press <b>+ Add a section</b>.</li>
+                        <li><b>Change headings, logo or footer:</b> open <b>Page Text</b>.</li>
+                    </ul>
+                    <p>Press <b>Preview site</b> at any time to check your work, then <b>Publish to live site</b> when you're happy.</p>
+                </div>
+            </div>
+
+            <div class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('trouble')" class="w-full text-left p-4 font-black uppercase">If something goes wrong</button>
+                <div x-show="helpOpen === 'trouble'" class="px-4 pb-4">
+                    <ul>
+                        <li><b>My change isn't showing:</b> wait a couple of minutes and refresh the page.</li>
+                        <li><b>It says the key isn't working:</b> the key has probably run out. Go through First-time setup again to make a new one.</li>
+                        <li><b>I made a mistake:</b> if you haven't published, just refresh the page and your changes disappear. If you have, change it back and publish again.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- BACK TO ADMIN SHORTCUT -->
+    <button x-show="isAdmin && view !== 'admin'" @click="view = 'admin'; window.scrollTo(0,0)" class="fixed bottom-4 left-4 z-50 py-3 px-5 bg-lime-400 text-black font-black uppercase tracking-wider shadow-lg" style="display: none;">
+        Back to admin
+    </button>
+
+    <!-- CREW ACCESS MODAL -->
+    <div x-show="crewModalOpen" @click.self="crewModalOpen = false" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
+        <div class="bg-zinc-950 border border-zinc-800 w-full max-w-md relative p-8">
+            <button @click="crewModalOpen = false" class="absolute top-4 right-4 text-zinc-500 hover:text-white" title="Close">
+                <i data-lucide="x"></i>
+            </button>
+            <h3 class="text-2xl font-black uppercase mb-6 text-white flex items-center gap-2">
+                <i data-lucide="lock" class="text-lime-400"></i> Crew Access
+            </h3>
+            <button @click="crewModalOpen = false; openScanner()" class="w-full py-4 bg-lime-400 text-black hover:bg-lime-500 font-black uppercase tracking-widest flex justify-center items-center gap-2">
+                <i data-lucide="scan" class="w-5 h-5"></i> Door Scanner
+            </button>
+            <form @submit.prevent="adminSignIn()" class="mt-6 pt-6 border-t border-zinc-800 space-y-3">
+                <label class="adm-label">Admin name</label>
+                <input x-model="crewName" type="text" autocomplete="off" autocapitalize="off" class="adm-input" placeholder="Enter name" />
+                <p x-show="crewError" class="text-sm text-red-400" x-text="crewError"></p>
+                <button type="submit" class="w-full py-3 border border-zinc-600 hover:border-white hover:bg-white hover:text-black font-bold uppercase tracking-wider transition-all">
+                    Sign in to admin
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- RSVP MODAL -->
     <div x-show="rsvpModalOpen" class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" style="display: none;">
         <div class="bg-zinc-950 border border-zinc-800 w-full max-w-md relative" @click.away="rsvpModalOpen = false; rsvpComplete = false;">
@@ -329,12 +665,10 @@
 
     <!-- FOOTER -->
     <footer class="border-t border-zinc-900 bg-black mt-auto py-8 text-center relative">
-        <p class="text-zinc-600 font-mono text-sm uppercase tracking-widest">
-            &copy; 2026 The Secret Collective. Built for the underground.
-        </p>
-        
-        <!-- Hidden Secret Access for Door Staff -->
-        <button @click="openScanner()" class="absolute bottom-4 right-4 text-zinc-800 hover:text-zinc-500 transition-colors" title="Crew Access">
+        <p class="text-zinc-600 font-mono text-sm uppercase tracking-widest" x-text="text.footer"></p>
+
+        <!-- Hidden Secret Access for Door Staff and Admin -->
+        <button @click="openCrew()" class="absolute bottom-4 right-4 text-zinc-800 hover:text-zinc-500 transition-colors" title="Crew Access">
             <i data-lucide="lock" class="w-5 h-5"></i>
         </button>
     </footer>
@@ -344,18 +678,51 @@
         // Initialize Lucide Icons
         lucide.createIcons();
         
-        // Ensure icons re-render when Alpine changes the DOM
-        document.addEventListener('alpine:initialized', () => {
-            Alpine.effect(() => { lucide.createIcons(); });
-        });
+        // Draw icons again whenever Alpine adds new elements to the page
+        let iconTimer;
+        new MutationObserver(() => {
+            clearTimeout(iconTimer);
+            iconTimer = setTimeout(() => lucide.createIcons(), 30);
+        }).observe(document.body, { childList: true, subtree: true });
+
+        // The name check only opens the admin panel. It is visible to anyone who
+        // reads this file, so the real protection is the private GitHub key that
+        // Publish needs, which is stored only on the admin's own device.
+        const ADMIN_NAME = 'motze';
+        const GITHUB = { owner: 'Nafwise', repo: 'The-Secret-DnB-Society', branch: 'main' };
+        const GITHUB_KEY_STORAGE = 'secretDnbGithubKey';
+        const SECRET_KEY_PATTERN = /\b[sr]k_(live|test)_/;
 
         function secretApp() {
             return {
-                view: 'home', // 'home', 'cart', 'success', 'scanner'
+                view: 'home', // 'home', 'cart', 'pay', 'success', 'scanner', 'admin'
                 cart: [],
                 rsvpModalOpen: false,
                 rsvpComplete: false,
-                
+
+                contentReady: false,
+                crewModalOpen: false,
+                crewName: '',
+                crewError: '',
+                isAdmin: false,
+                adminTab: 'events',
+                adminTabs: [
+                    { id: 'events', label: 'Events' },
+                    { id: 'merch', label: 'Merch' },
+                    { id: 'text', label: 'Page Text' },
+                    { id: 'sections', label: 'Sections' },
+                    { id: 'help', label: 'Help & Guides' }
+                ],
+                helpOpen: 'setup',
+                dirty: false,
+                publishing: false,
+                publishState: '',
+                publishMessage: '',
+                ghToken: '',
+                ghTokenInput: '',
+                connectMessage: '',
+                uploadedImages: {}, // photo data => its path in the repo
+
                 html5QrCode: null,
                 scanStatus: 'idle', // 'idle', 'valid', 'invalid', 'duplicate'
                 scanResult: null,
@@ -376,8 +743,84 @@
                             }
                         }
                     });
+
+                    try { this.ghToken = localStorage.getItem(GITHUB_KEY_STORAGE) || ''; } catch (e) {}
+
+                    window.addEventListener('beforeunload', (e) => {
+                        if (this.dirty) { e.preventDefault(); e.returnValue = ''; }
+                    });
+
+                    this.loadContent();
                 },
-                
+
+                // Loads what the admin last published. Until the first publish there
+                // is no content.json, so the defaults below are used.
+                async loadContent() {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 4000);
+                    try {
+                        const res = await fetch('content.json?t=' + Date.now(), { cache: 'no-store', signal: controller.signal });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (Array.isArray(data.events)) this.events = data.events;
+                            if (Array.isArray(data.merch)) this.merch = data.merch;
+                            if (Array.isArray(data.sections)) this.sections = data.sections;
+                            if (data.text) this.text = { ...this.text, ...data.text };
+                        }
+                    } catch (e) {
+                        console.info('Using built-in content:', e.message);
+                    } finally {
+                        clearTimeout(timer);
+                        this.contentReady = true;
+                    }
+                },
+
+                get hero() {
+                    return this.events[0] || { title: '', date: '', location: '', price: 0, image: '', isUnderground: false };
+                },
+
+                get payLines() {
+                    const lines = [];
+                    this.cart.forEach(item => {
+                        const line = lines.find(l => l.item.id === item.id);
+                        if (line) line.qty++; else lines.push({ item, qty: 1 });
+                    });
+                    return lines;
+                },
+
+                money(value) {
+                    return (Number(value) || 0).toFixed(2);
+                },
+
+                safeUrl(value) {
+                    try {
+                        const url = new URL(value);
+                        return url.protocol === 'https:' ? url.href : '';
+                    } catch (e) {
+                        return '';
+                    }
+                },
+
+                linkProblem(value) {
+                    if (!value) return '';
+                    if (SECRET_KEY_PATTERN.test(value)) return "That's a Stripe SECRET key. Delete it from this box. Only paste Payment Links here.";
+                    if (!this.safeUrl(value)) return 'This should be a full link beginning with https://';
+                    return '';
+                },
+
+                text: {
+                    pageTitle: 'The Secret DnB Collective',
+                    brandBefore: 'The Secret',
+                    brandHighlight: 'DnB',
+                    heroBadge: 'Next Event',
+                    heroButton: 'Secure Ticket',
+                    eventsHeading: 'Upcoming Intel',
+                    merchHeading: 'Hardware (Merch)',
+                    footer: '© 2026 The Secret Collective. Built for the underground.'
+                },
+
+                sections: [],
+
                 events: [
                     {
                         id: 'evt_1', type: 'ticket', title: 'THE SECRET: WAREHOUSE PROJECT', 
@@ -407,7 +850,7 @@
                 },
 
                 getCartTotal() {
-                    return this.cart.reduce((total, item) => total + item.price, 0);
+                    return this.cart.reduce((total, item) => total + (Number(item.price) || 0), 0);
                 },
 
                 getTickets() {
@@ -415,10 +858,237 @@
                 },
 
                 checkout() {
-                    // This is where you would normally send the user to Stripe Checkout.
-                    // For now, we just show them the success page.
-                    this.view = 'success';
+                    // With no Stripe links set up yet, keep the demo ticket flow.
+                    if (!this.cart.some(item => this.safeUrl(item.stripeLink))) {
+                        this.view = 'success';
+                        window.scrollTo(0,0);
+                        return;
+                    }
+
+                    // A single item goes straight to Stripe.
+                    if (this.cart.length === 1) {
+                        window.location.href = this.safeUrl(this.cart[0].stripeLink);
+                        return;
+                    }
+
+                    this.view = 'pay';
                     window.scrollTo(0,0);
+                },
+
+                openCrew() {
+                    this.crewName = '';
+                    this.crewError = '';
+                    this.crewModalOpen = true;
+                },
+
+                adminSignIn() {
+                    if (this.crewName.trim().toLowerCase() !== ADMIN_NAME) {
+                        this.crewError = 'Name not recognised.';
+                        return;
+                    }
+                    this.isAdmin = true;
+                    this.crewModalOpen = false;
+                    this.adminTab = this.ghToken ? 'events' : 'help';
+                    this.view = 'admin';
+                    window.scrollTo(0,0);
+                },
+
+                adminSignOut() {
+                    if (this.dirty && !confirm('You have changes that are not published. Sign out and lose them?')) return;
+                    // Reload so any unpublished edits are thrown away.
+                    this.dirty = false;
+                    window.location.reload();
+                },
+
+                toggleHelp(id) {
+                    this.helpOpen = this.helpOpen === id ? '' : id;
+                },
+
+                newId(prefix) {
+                    return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                },
+
+                addEvent() {
+                    this.events.push({ id: this.newId('evt'), type: 'ticket', title: 'NEW EVENT', date: '', location: '', price: 0, isUnderground: false, image: '', stripeLink: '' });
+                    this.dirty = true;
+                },
+
+                addMerch() {
+                    this.merch.push({ id: this.newId('mch'), type: 'merch', title: 'NEW ITEM', price: 0, image: '', stripeLink: '' });
+                    this.dirty = true;
+                },
+
+                addSection() {
+                    this.sections.push({ id: this.newId('sec'), heading: 'NEW SECTION', body: '', image: '', buttonText: '', buttonLink: '' });
+                    this.dirty = true;
+                },
+
+                moveItem(list, index, direction) {
+                    const target = index + direction;
+                    if (target < 0 || target >= list.length) return;
+                    list.splice(target, 0, list.splice(index, 1)[0]);
+                    this.dirty = true;
+                },
+
+                removeItem(list, index) {
+                    const name = list[index].title || list[index].heading || 'this item';
+                    if (!confirm('Delete "' + name + '"?')) return;
+                    list.splice(index, 1);
+                    this.dirty = true;
+                },
+
+                async pickImage(e, target) {
+                    const file = e.target.files[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    try {
+                        target.image = await this.shrinkImage(file);
+                        this.dirty = true;
+                    } catch (err) {
+                        alert("Sorry, that photo couldn't be read. Try a JPG or PNG.");
+                    }
+                },
+
+                shrinkImage(file) {
+                    return new Promise((resolve, reject) => {
+                        const objectUrl = URL.createObjectURL(file);
+                        const img = new Image();
+                        img.onload = () => {
+                            const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.round(img.width * scale);
+                            canvas.height = Math.round(img.height * scale);
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#000';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            URL.revokeObjectURL(objectUrl);
+                            resolve(canvas.toDataURL('image/jpeg', 0.82));
+                        };
+                        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('unreadable image')); };
+                        img.src = objectUrl;
+                    });
+                },
+
+                async github(path, options = {}) {
+                    const res = await fetch(`https://api.github.com/repos/${GITHUB.owner}/${GITHUB.repo}${path}`, {
+                        ...options,
+                        headers: {
+                            Accept: 'application/vnd.github+json',
+                            Authorization: 'Bearer ' + this.ghToken,
+                            ...(options.body ? { 'Content-Type': 'application/json' } : {})
+                        }
+                    });
+                    if (!res.ok) {
+                        const err = new Error('GitHub error ' + res.status);
+                        err.status = res.status;
+                        throw err;
+                    }
+                    return res.json();
+                },
+
+                githubProblem(err) {
+                    if (err.status === 401) return "The GitHub key isn't working. It may have expired. See First-time setup in Help & Guides.";
+                    if (err.status === 403 || err.status === 404) return "The GitHub key doesn't have permission to change this site. See First-time setup in Help & Guides.";
+                    if (err.status === 409 || err.status === 422) return 'The site was updated at the same moment. Please press Publish again.';
+                    if (!err.status) return "Couldn't reach GitHub. Check your internet connection and try again.";
+                    return 'GitHub had a problem (' + err.status + '). Please try again in a minute.';
+                },
+
+                async connectGitHub() {
+                    if (!this.ghTokenInput) {
+                        this.connectMessage = 'Paste the key into the box first.';
+                        return;
+                    }
+                    const previous = this.ghToken;
+                    this.ghToken = this.ghTokenInput;
+                    this.connectMessage = 'Checking...';
+                    try {
+                        const repo = await this.github('');
+                        if (repo.permissions && repo.permissions.push === false) {
+                            throw Object.assign(new Error('read only'), { status: 403 });
+                        }
+                        try { localStorage.setItem(GITHUB_KEY_STORAGE, this.ghToken); } catch (e) {}
+                        this.ghTokenInput = '';
+                        this.connectMessage = 'Connected. This device can now publish.';
+                    } catch (err) {
+                        this.ghToken = previous;
+                        this.connectMessage = this.githubProblem(err);
+                    }
+                },
+
+                disconnectGitHub() {
+                    try { localStorage.removeItem(GITHUB_KEY_STORAGE); } catch (e) {}
+                    this.ghToken = '';
+                    this.connectMessage = 'Key removed from this device.';
+                },
+
+                // Saves everything as one commit, so one publish is one site rebuild.
+                async publish() {
+                    if (this.publishing) return;
+                    this.publishState = '';
+                    this.publishMessage = '';
+
+                    if (!this.ghToken) {
+                        this.adminTab = 'help';
+                        this.helpOpen = 'setup';
+                        this.publishState = 'error';
+                        this.publishMessage = 'This device needs connecting first. Follow First-time setup below.';
+                        return;
+                    }
+
+                    const allLinks = [...this.events, ...this.merch].map(item => item.stripeLink || '');
+                    if (allLinks.some(link => SECRET_KEY_PATTERN.test(link))) {
+                        this.publishState = 'error';
+                        this.publishMessage = 'Not published: a Stripe SECRET key was pasted into a payment link box. Remove it first.';
+                        return;
+                    }
+
+                    this.publishing = true;
+                    this.publishMessage = 'Publishing...';
+                    try {
+                        const content = JSON.parse(JSON.stringify({
+                            text: this.text, events: this.events, merch: this.merch, sections: this.sections
+                        }));
+                        [...content.events, ...content.merch].forEach(item => { item.price = Number(item.price) || 0; });
+
+                        // Swap new photos for file paths and queue them for upload.
+                        const paths = { ...this.uploadedImages };
+                        const newImages = [];
+                        [...content.events, ...content.merch, ...content.sections].forEach(item => {
+                            if (!item.image || !item.image.startsWith('data:')) return;
+                            if (!paths[item.image]) {
+                                const slug = (item.title || item.heading || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'photo';
+                                paths[item.image] = `images/${slug}-${Date.now()}-${newImages.length}.jpg`;
+                                newImages.push({ path: paths[item.image], base64: item.image.split(',')[1] });
+                            }
+                            item.image = paths[item.image];
+                        });
+
+                        const ref = await this.github(`/git/ref/heads/${GITHUB.branch}`);
+                        const headSha = ref.object.sha;
+                        const headCommit = await this.github(`/git/commits/${headSha}`);
+
+                        const tree = [{ path: 'content.json', mode: '100644', type: 'blob', content: JSON.stringify(content, null, 2) + '\n' }];
+                        for (const image of newImages) {
+                            const blob = await this.github('/git/blobs', { method: 'POST', body: JSON.stringify({ content: image.base64, encoding: 'base64' }) });
+                            tree.push({ path: image.path, mode: '100644', type: 'blob', sha: blob.sha });
+                        }
+
+                        const newTree = await this.github('/git/trees', { method: 'POST', body: JSON.stringify({ base_tree: headCommit.tree.sha, tree }) });
+                        const commit = await this.github('/git/commits', { method: 'POST', body: JSON.stringify({ message: 'Update site content from admin panel', tree: newTree.sha, parents: [headSha] }) });
+                        await this.github(`/git/refs/heads/${GITHUB.branch}`, { method: 'PATCH', body: JSON.stringify({ sha: commit.sha }) });
+
+                        this.uploadedImages = paths;
+                        this.dirty = false;
+                        this.publishState = 'ok';
+                        this.publishMessage = 'Published! The live site will update in about a minute.';
+                    } catch (err) {
+                        this.publishState = 'error';
+                        this.publishMessage = this.githubProblem(err);
+                    } finally {
+                        this.publishing = false;
+                    }
                 },
 
                 openScanner() {
