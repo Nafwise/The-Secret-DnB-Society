@@ -331,15 +331,17 @@
         <p class="text-zinc-500 text-sm mt-6 text-center font-mono">
             Point camera at raver's screen.
         </p>
+        <button x-show="role === 'bouncer'" @click="signOut()" class="adm-btn mt-6">Sign out</button>
     </main>
 
     <!-- ADMIN VIEW -->
     <main x-show="view === 'admin'" @input="dirty = true" class="max-w-4xl mx-auto px-4 md:px-6 py-8 w-full flex-grow" style="display: none;">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 class="text-3xl font-black uppercase tracking-tighter">Admin</h2>
-            <div class="flex gap-2">
+            <h2 class="text-3xl font-black uppercase tracking-tighter" x-text="role === 'staff' ? 'Staff' : 'Admin'"></h2>
+            <div class="flex flex-wrap gap-2">
+                <button x-show="role === 'admin'" @click="openScanner()" class="adm-btn">Door scanner</button>
                 <button @click="view = 'home'; window.scrollTo(0,0)" class="adm-btn">Preview site</button>
-                <button @click="adminSignOut()" class="adm-btn">Sign out</button>
+                <button @click="signOut()" class="adm-btn">Sign out</button>
             </div>
         </div>
 
@@ -355,7 +357,7 @@
 
         <!-- Tabs -->
         <div class="flex flex-wrap gap-2 mb-6">
-            <template x-for="tab in adminTabs" :key="tab.id">
+            <template x-for="tab in visibleTabs" :key="tab.id">
                 <button @click="adminTab = tab.id" class="adm-btn" :class="adminTab === tab.id ? 'bg-lime-400 !text-black !border-lime-400' : ''" x-text="tab.label"></button>
             </template>
         </div>
@@ -486,6 +488,46 @@
             <div class="adm-warn text-sm text-zinc-300">Use something long and hard to guess, and don't reuse a password from anywhere else.</div>
         </div>
 
+        <!-- Crew logins tab -->
+        <div x-show="adminTab === 'crew' && role === 'admin'" class="space-y-6">
+            <p class="text-sm text-zinc-400">Bouncers can only open the door scanner. Staff can only edit the site. Changes save as soon as you press the button and take about a minute to apply.</p>
+
+            <div class="border border-zinc-800 bg-zinc-950 p-4 space-y-4">
+                <h3 class="font-black uppercase">Add a login</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div><label class="adm-label">Name</label><input class="adm-input" x-model="crewNew.name" @input.stop placeholder="First name or nickname"></div>
+                    <div>
+                        <label class="adm-label">Type</label>
+                        <select class="adm-input" x-model="crewNew.role" @input.stop>
+                            <option value="bouncer">Bouncer (door scanner only)</option>
+                            <option value="staff">Staff (editing only)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="adm-label">Their login</label>
+                    <input class="adm-input" type="text" autocomplete="off" autocapitalize="off" x-model="crewNew.login" @input.stop placeholder="At least 6 characters">
+                    <p class="text-xs text-zinc-500 mt-1">Write this down and send it to them. You won't be able to see it again.</p>
+                </div>
+                <button @click="addCrewMember()" :disabled="savingCrew" class="py-2 px-5 bg-lime-400 text-black font-black uppercase disabled:opacity-50" x-text="savingCrew ? 'Saving...' : 'Add login'"></button>
+                <p x-show="crewMessage" class="text-sm" :class="crewState === 'error' ? 'text-red-400' : 'text-lime-400'" x-text="crewMessage"></p>
+            </div>
+
+            <div class="space-y-2">
+                <template x-for="member in crew" :key="member.id">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border border-zinc-800 bg-zinc-950 p-3">
+                        <div>
+                            <span class="font-bold uppercase" x-text="member.name"></span>
+                            <span class="text-xs text-zinc-400 uppercase tracking-widest ml-2" x-text="member.role"></span>
+                        </div>
+                        <button @click="removeCrewMember(member)" :disabled="savingCrew" class="adm-btn !text-red-400 disabled:opacity-50">Remove</button>
+                    </div>
+                </template>
+                <p x-show="crew.length === 0" class="text-sm text-zinc-500">No bouncer or staff logins yet.</p>
+            </div>
+            <div class="adm-warn text-sm text-zinc-300">Names here can be seen by anyone who looks at the website's GitHub page, so use a first name or nickname. Logins stay scrambled.</div>
+        </div>
+
         <!-- Help tab -->
         <div x-show="adminTab === 'help'" class="adm-guide space-y-3 text-zinc-300">
             <div class="border border-lime-400 p-4">
@@ -591,6 +633,23 @@
                 </div>
             </div>
 
+            <div x-show="role === 'admin'" class="border border-zinc-800 bg-zinc-950">
+                <button @click="toggleHelp('crew')" class="w-full text-left p-4 font-black uppercase">Add bouncers and staff</button>
+                <div x-show="helpOpen === 'crew'" class="px-4 pb-4">
+                    <ol>
+                        <li>Open <b>Crew Logins</b>.</li>
+                        <li>Enter their name, choose <b>Bouncer</b> or <b>Staff</b>, and make up a login for them.</li>
+                        <li>Press <b>Add login</b>, then send them the login privately.</li>
+                        <li>After about a minute they can click the padlock, enter it, and go straight to the right place.</li>
+                    </ol>
+                    <ul>
+                        <li><b>Someone forgot their login:</b> remove them and add them again with a new one. Nobody can look up an old login.</li>
+                        <li><b>Someone has left:</b> press <b>Remove</b>. Their login stops working after about a minute.</li>
+                    </ul>
+                    <div class="adm-warn"><b>Staff can edit without the GitHub key, but they can't publish.</b> To let them publish, they'd need the key on their own device. Only give it to someone you fully trust, because it can change anything on the site.</div>
+                </div>
+            </div>
+
             <div class="border border-zinc-800 bg-zinc-950">
                 <button @click="toggleHelp('trouble')" class="w-full text-left p-4 font-black uppercase">If something goes wrong</button>
                 <div x-show="helpOpen === 'trouble'" class="px-4 pb-4">
@@ -608,7 +667,7 @@
     </main>
 
     <!-- BACK TO ADMIN SHORTCUT -->
-    <button x-show="isAdmin && view !== 'admin'" @click="view = 'admin'; window.scrollTo(0,0)" class="fixed bottom-4 left-4 z-50 py-3 px-5 bg-lime-400 text-black font-black uppercase tracking-wider shadow-lg" style="display: none;">
+    <button x-show="canEdit && view !== 'admin'" @click="view = 'admin'; window.scrollTo(0,0)" class="fixed bottom-4 left-4 z-50 py-3 px-5 bg-lime-400 text-black font-black uppercase tracking-wider shadow-lg" style="display: none;">
         Back to admin
     </button>
 
@@ -621,16 +680,11 @@
             <h3 class="text-2xl font-black uppercase mb-6 text-white flex items-center gap-2">
                 <i data-lucide="lock" class="text-lime-400"></i> Crew Access
             </h3>
-            <button @click="crewModalOpen = false; openScanner()" class="w-full py-4 bg-lime-400 text-black hover:bg-lime-500 font-black uppercase tracking-widest flex justify-center items-center gap-2">
-                <i data-lucide="scan" class="w-5 h-5"></i> Door Scanner
-            </button>
-            <form @submit.prevent="adminSignIn()" class="mt-6 pt-6 border-t border-zinc-800 space-y-3">
-                <label class="adm-label">Admin login</label>
+            <form @submit.prevent="crewSignIn()" class="space-y-3">
+                <label class="adm-label">Your login</label>
                 <input x-model="crewName" type="password" autocomplete="off" autocapitalize="off" class="adm-input" placeholder="Enter login" />
                 <p x-show="crewError" class="text-sm text-red-400" x-text="crewError"></p>
-                <button type="submit" class="w-full py-3 border border-zinc-600 hover:border-white hover:bg-white hover:text-black font-bold uppercase tracking-wider transition-all">
-                    Sign in to admin
-                </button>
+                <button type="submit" :disabled="signingIn" class="w-full py-3 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider transition-all disabled:opacity-50" x-text="signingIn ? 'Checking...' : 'Sign in'"></button>
             </form>
         </div>
     </div>
@@ -707,10 +761,10 @@
             iconTimer = setTimeout(() => lucide.createIcons(), 30);
         }).observe(document.body, { childList: true, subtree: true });
 
-        // The login only opens the admin panel. The starter login is visible to
-        // anyone who reads this file until the admin replaces it, and the replacement
-        // is stored as a salted hash in the public admin.json. The real protection is
-        // the private GitHub key that saving needs, kept only on the admin's device.
+        // Logins only decide which screens open in the browser. The starter login is
+        // visible to anyone who reads this file until the admin replaces it. Other
+        // logins are salted hashes in the public admin.json and crew.json. The real
+        // protection is the private GitHub key that saving needs.
         const ADMIN_NAME = 'motze';
         const LOGIN_ITERATIONS = 600000;
         const GITHUB = { owner: 'Nafwise', repo: 'The-Secret-DnB-Society', branch: 'main' };
@@ -728,14 +782,20 @@
                 crewModalOpen: false,
                 crewName: '',
                 crewError: '',
-                isAdmin: false,
+                role: '', // '', 'admin', 'staff', 'bouncer'
+                crew: [],
+                crewNew: { name: '', role: 'bouncer', login: '' },
+                savingCrew: false,
+                crewState: '',
+                crewMessage: '',
                 adminTab: 'events',
                 adminTabs: [
                     { id: 'events', label: 'Events' },
                     { id: 'merch', label: 'Merch' },
                     { id: 'text', label: 'Page Text' },
                     { id: 'sections', label: 'Sections' },
-                    { id: 'login', label: 'My Login' },
+                    { id: 'login', label: 'My Login', adminOnly: true },
+                    { id: 'crew', label: 'Crew Logins', adminOnly: true },
                     { id: 'help', label: 'Help & Guides' }
                 ],
                 signingIn: false,
@@ -805,6 +865,14 @@
                         clearTimeout(timer);
                         this.contentReady = true;
                     }
+                },
+
+                get canEdit() {
+                    return this.role === 'admin' || this.role === 'staff';
+                },
+
+                get visibleTabs() {
+                    return this.adminTabs.filter(tab => this.role === 'admin' || !tab.adminOnly);
                 },
 
                 get hero() {
@@ -908,29 +976,46 @@
                 },
 
                 openCrew() {
+                    if (this.role === 'bouncer') {
+                        this.openScanner();
+                        return;
+                    }
                     this.crewName = '';
                     this.crewError = '';
                     this.crewModalOpen = true;
                 },
 
-                async adminSignIn() {
+                async crewSignIn() {
                     if (this.signingIn) return;
                     this.signingIn = true;
                     this.crewError = '';
                     try {
                         const attempt = this.crewName.trim().toLowerCase();
-                        const saved = await this.loadSavedLogin();
-                        const correct = saved
-                            ? await this.hashLogin(attempt, Uint8Array.from(atob(saved.salt), c => c.charCodeAt(0)), saved.iterations) === saved.hash
+                        const [saved, crewFile] = await Promise.all([this.loadSavedLogin(), this.loadCrewFile()]);
+                        const isAdmin = saved
+                            ? await this.hashLogin(attempt, this.fromBase64(saved.salt), saved.iterations) === saved.hash
                             : attempt === ADMIN_NAME;
-                        if (!correct) {
+
+                        let member = null;
+                        if (!isAdmin && crewFile) {
+                            const hash = await this.hashLogin(attempt, this.fromBase64(crewFile.salt), crewFile.iterations);
+                            member = crewFile.members.find(m => m.hash === hash) || null;
+                        }
+
+                        if (!isAdmin && !member) {
                             this.crewError = 'Login not recognised.';
                             return;
                         }
-                        this.usingStarterLogin = !saved;
-                        this.isAdmin = true;
+
+                        this.role = isAdmin ? 'admin' : member.role;
                         this.crewModalOpen = false;
-                        this.adminTab = this.ghToken ? 'events' : 'help';
+                        if (this.role === 'bouncer') {
+                            this.openScanner();
+                            return;
+                        }
+                        this.usingStarterLogin = isAdmin && !saved;
+                        this.crew = isAdmin && crewFile ? crewFile.members : [];
+                        this.adminTab = isAdmin && !this.ghToken ? 'help' : 'events';
                         this.view = 'admin';
                         window.scrollTo(0,0);
                     } catch (e) {
@@ -952,10 +1037,109 @@
                     }
                 },
 
+                async loadCrewFile() {
+                    try {
+                        const res = await fetch('crew.json?t=' + Date.now(), { cache: 'no-store' });
+                        if (!res.ok) return null;
+                        const file = await res.json();
+                        return file && file.salt && file.iterations && Array.isArray(file.members) ? file : null;
+                    } catch (e) {
+                        return null;
+                    }
+                },
+
                 async hashLogin(login, salt, iterations) {
                     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(login), 'PBKDF2', false, ['deriveBits']);
                     const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256);
-                    return btoa(String.fromCharCode(...new Uint8Array(bits)));
+                    return this.toBase64(new Uint8Array(bits));
+                },
+
+                toBase64(bytes) {
+                    return btoa(String.fromCharCode(...bytes));
+                },
+
+                fromBase64(text) {
+                    return Uint8Array.from(atob(text.replace(/\s/g, '')), c => c.charCodeAt(0));
+                },
+
+                // Reads straight from GitHub, because the public copy can be a minute old
+                // and saving from it would lose a login added moments earlier.
+                async readCrewFile() {
+                    try {
+                        const file = await this.github(`/contents/crew.json?ref=${GITHUB.branch}`);
+                        return JSON.parse(new TextDecoder().decode(this.fromBase64(file.content)));
+                    } catch (err) {
+                        if (err.status !== 404) throw err;
+                        return { salt: this.toBase64(crypto.getRandomValues(new Uint8Array(16))), iterations: LOGIN_ITERATIONS, members: [] };
+                    }
+                },
+
+                async writeCrewFile(file, message) {
+                    await this.commitFiles(message, [
+                        { path: 'crew.json', mode: '100644', type: 'blob', content: JSON.stringify(file, null, 2) + '\n' }
+                    ]);
+                    this.crew = file.members;
+                },
+
+                async addCrewMember() {
+                    if (this.savingCrew) return;
+                    const name = this.crewNew.name.trim();
+                    const login = this.crewNew.login.trim().toLowerCase();
+                    const fail = (message) => { this.crewState = 'error'; this.crewMessage = message; };
+
+                    if (!this.ghToken) return fail('This device needs connecting first. See First-time setup in Help & Guides.');
+                    if (!name) return fail('Please enter their name.');
+                    if (login.length < 6) return fail('Their login needs at least 6 characters.');
+
+                    this.savingCrew = true;
+                    this.crewState = '';
+                    this.crewMessage = 'Saving...';
+                    try {
+                        const saved = await this.loadSavedLogin();
+                        if (saved && await this.hashLogin(login, this.fromBase64(saved.salt), saved.iterations) === saved.hash) {
+                            return fail("That's already in use. Please choose a different login.");
+                        }
+                        const file = await this.readCrewFile();
+                        const hash = await this.hashLogin(login, this.fromBase64(file.salt), file.iterations);
+                        if (file.members.some(m => m.hash === hash)) {
+                            return fail("That's already in use. Please choose a different login.");
+                        }
+                        file.members.push({ id: this.newId('crew'), name, role: this.crewNew.role, hash });
+                        await this.writeCrewFile(file, 'Add crew login');
+                        this.crewNew = { name: '', role: this.crewNew.role, login: '' };
+                        this.crewState = 'ok';
+                        this.crewMessage = 'Added! ' + name + ' can sign in after about a minute.';
+                    } catch (err) {
+                        fail(this.githubProblem(err));
+                    } finally {
+                        this.savingCrew = false;
+                    }
+                },
+
+                async removeCrewMember(member) {
+                    if (this.savingCrew) return;
+                    if (!this.ghToken) {
+                        this.crewState = 'error';
+                        this.crewMessage = 'This device needs connecting first. See First-time setup in Help & Guides.';
+                        return;
+                    }
+                    if (!confirm('Remove the login for ' + member.name + '?')) return;
+
+                    this.savingCrew = true;
+                    this.crewState = '';
+                    this.crewMessage = 'Saving...';
+                    try {
+                        const file = await this.readCrewFile();
+                        file.members = file.members.filter(m => m.id !== member.id);
+                        await this.writeCrewFile(file, 'Remove crew login');
+                        this.crewState = 'ok';
+                        this.crewMessage = 'Removed. Their login stops working in about a minute.';
+                    } catch (err) {
+                        this.crewState = 'error';
+                        this.crewMessage = this.githubProblem(err);
+                    } finally {
+                        this.savingCrew = false;
+                    }
                 },
 
                 async changeLogin() {
@@ -973,7 +1157,7 @@
                     try {
                         const salt = crypto.getRandomValues(new Uint8Array(16));
                         const hash = await this.hashLogin(login, salt, LOGIN_ITERATIONS);
-                        const record = { salt: btoa(String.fromCharCode(...salt)), iterations: LOGIN_ITERATIONS, hash };
+                        const record = { salt: this.toBase64(salt), iterations: LOGIN_ITERATIONS, hash };
                         await this.commitFiles('Update admin login', [
                             { path: 'admin.json', mode: '100644', type: 'blob', content: JSON.stringify(record, null, 2) + '\n' }
                         ]);
@@ -989,7 +1173,7 @@
                     }
                 },
 
-                adminSignOut() {
+                signOut() {
                     if (this.dirty && !confirm('You have changes that are not published. Sign out and lose them?')) return;
                     // Reload so any unpublished edits are thrown away.
                     this.dirty = false;
@@ -1068,6 +1252,7 @@
 
                 async github(path, options = {}) {
                     const res = await fetch(`https://api.github.com/repos/${GITHUB.owner}/${GITHUB.repo}${path}`, {
+                        cache: 'no-store', // GitHub's answers can otherwise be a minute old
                         ...options,
                         headers: {
                             Accept: 'application/vnd.github+json',
@@ -1191,6 +1376,7 @@
                 },
 
                 openScanner() {
+                    if (this.role !== 'admin' && this.role !== 'bouncer') return;
                     this.view = 'scanner';
                     this.scanStatus = 'idle';
                     this.scanResult = null;
