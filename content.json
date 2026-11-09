@@ -1,8 +1,8 @@
 {
   "text": {
     "pageTitle": "The Secret Drum n bass society ",
-    "brandBefore": "The Secret",
-    "brandHighlight": "DnB",
+    "brandBefore": "TS",
+    "brandHighlight": "DnBs",
     "heroBadge": "Next Event",
     "heroButton": "Secure Ticket",
     "eventsHeading": "Upcoming Intel",
@@ -12,12 +12,12 @@
   "events": [
     {
       "id": "evt_1",
-      "type": "ticket",
+      "type": "rsvp",
       "title": "Tsdnbs presents The rise of aquarians part two ",
       "date": "30/1/2027",
-      "location": "SECRET WAREHOUSE, LDN",
+      "location": "Kent tbc",
       "price": 10,
-      "isUnderground": false,
+      "isUnderground": true,
       "image": "https://images.unsplash.com/photo-1574156828552-32a225eefbc7?auto=format&fit=crop&q=80&w=800"
     },
     {
