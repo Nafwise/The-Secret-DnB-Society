@@ -45,8 +45,9 @@
     <header class="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
         <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-2 cursor-pointer group" @click="view = 'home'">
-                <i data-lucide="skull" class="text-lime-400"></i>
-                <h1 class="text-2xl font-black tracking-tighter text-white uppercase">
+                <span x-show="!logo.image"><i data-lucide="skull" class="text-lime-400"></i></span>
+                <img x-show="logo.image" :src="logo.image" alt="" class="h-10 w-auto max-w-[220px] object-contain">
+                <h1 class="text-2xl font-black tracking-tighter text-white uppercase" :class="logo.image ? 'sr-only' : ''">
                     <span x-text="text.brandBefore"></span> <span class="text-lime-400" x-text="text.brandHighlight"></span>
                 </h1>
             </div>
@@ -209,20 +210,18 @@
                         <span class="text-3xl font-black font-mono">£<span x-text="money(getCartTotal())"></span></span>
                     </div>
                     <button @click="checkout()" class="w-full md:w-1/2 py-4 bg-white text-black hover:bg-lime-400 font-black uppercase tracking-widest text-lg flex justify-center items-center gap-2 transition-all">
-                        Checkout (Stripe) <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        <span x-text="checkoutLabel"></span> <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
-                    <p class="text-xs text-zinc-600 mt-4 text-center w-full md:w-1/2">
-                        Secure checkout via Stripe.
-                    </p>
+                    <p x-show="checkoutProviders.length > 0" class="text-xs text-zinc-600 mt-4 text-center w-full md:w-1/2" x-text="'Secure checkout via ' + checkoutProviders.join(' and ') + '.'"></p>
                 </div>
             </div>
         </template>
     </main>
 
-    <!-- PAY VIEW (Stripe Payment Links) -->
+    <!-- PAY VIEW (Stripe or Square payment links) -->
     <main x-show="view === 'pay'" class="max-w-3xl mx-auto px-6 py-12 min-h-[80vh] w-full" style="display: none;">
         <h2 class="text-4xl font-black uppercase tracking-tighter mb-2">Pay Securely</h2>
-        <p class="text-zinc-400 mb-8">Each item is paid for separately on Stripe's secure page.</p>
+        <p class="text-zinc-400 mb-8">Each item is paid for separately on a secure payment page.</p>
         <div class="space-y-4">
             <template x-for="line in payLines" :key="line.item.id">
                 <div class="flex flex-wrap items-center justify-between gap-4 p-4 border border-zinc-800 bg-zinc-900">
@@ -230,11 +229,11 @@
                         <h4 class="font-bold uppercase" x-text="line.item.title"></h4>
                         <p class="text-sm text-zinc-400 font-mono">
                             <span x-text="line.qty"></span> x £<span x-text="money(line.item.price)"></span>
-                            <span x-show="line.qty > 1"> (choose this quantity on the Stripe page)</span>
+                            <span x-show="line.qty > 1"> (choose this quantity on the payment page)</span>
                         </p>
                     </div>
-                    <a x-show="safeUrl(line.item.stripeLink)" :href="safeUrl(line.item.stripeLink)" target="_blank" rel="noopener" class="py-3 px-6 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider">Pay on Stripe</a>
-                    <span x-show="!safeUrl(line.item.stripeLink)" class="text-sm text-zinc-500 uppercase tracking-widest">Not on sale online yet</span>
+                    <a x-show="safeUrl(line.item.paymentLink)" :href="safeUrl(line.item.paymentLink)" target="_blank" rel="noopener" class="py-3 px-6 bg-lime-400 text-black hover:bg-lime-500 font-bold uppercase tracking-wider" x-text="payLabel(line.item.paymentLink)"></a>
+                    <span x-show="!safeUrl(line.item.paymentLink)" class="text-sm text-zinc-500 uppercase tracking-widest">Not on sale online yet</span>
                 </div>
             </template>
         </div>
@@ -274,7 +273,7 @@
                 <div class="text-center p-8 border border-zinc-800 bg-zinc-900 w-full">
                     <i data-lucide="shirt" class="mx-auto w-12 h-12 text-zinc-600 mb-4"></i>
                     <h3 class="font-bold uppercase text-xl mb-2">Merch Ordered</h3>
-                    <p class="text-zinc-400">Your physical hardware will be shipped to the address provided via Stripe.</p>
+                    <p class="text-zinc-400">Your physical hardware will be shipped to the address provided at checkout.</p>
                     <button @click="cart = []; view = 'home';" class="mt-6 text-lime-400 hover:text-white font-bold uppercase border border-lime-400 hover:bg-lime-400 hover:text-black px-6 py-2 transition-all">
                         Back to Intel
                     </button>
@@ -383,21 +382,25 @@
                     </div>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" x-model="ev.isUnderground" @change="ev.type = ev.isUnderground ? 'rsvp' : 'ticket'"> Underground event (shows "Request RSVP" instead of a price)</label>
                     <div x-show="!ev.isUnderground">
-                        <label class="adm-label">Stripe payment link</label>
-                        <input class="adm-input" x-model.trim="ev.stripeLink" placeholder="https://buy.stripe.com/...">
-                        <p x-show="linkProblem(ev.stripeLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(ev.stripeLink)"></p>
-                        <p x-show="ev.stripeLink && !linkProblem(ev.stripeLink)" class="text-xs text-zinc-500 mt-1">Stripe charges the price set on this link. If you change the price above, see the "Change a price" guide.</p>
+                        <label class="adm-label">Payment link (Stripe or Square)</label>
+                        <input class="adm-input" x-model.trim="ev.paymentLink" placeholder="Paste your Stripe or Square link">
+                        <p x-show="linkProblem(ev.paymentLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(ev.paymentLink)"></p>
+                        <p x-show="ev.paymentLink && !linkProblem(ev.paymentLink)" class="text-xs text-zinc-500 mt-1" x-text="linkHint(ev.paymentLink)"></p>
                     </div>
                     <div>
-                        <label class="adm-label">Photo</label>
-                        <div class="flex items-center gap-4">
+                        <label class="adm-label">Photo (PNG, JPG or web link)</label>
+                        <div class="flex flex-wrap items-center gap-4">
                             <img x-show="ev.image" :src="ev.image" alt="" class="w-24 h-16 object-cover border border-zinc-700">
                             <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, ev)">
+                            <button x-show="ev.image" @click="ev.image = ''; dirty = true" class="adm-btn">Remove photo</button>
                         </div>
+                        <input class="adm-input mt-3" :value="imageLinkValue(ev)" @input.stop @change="setImageLink(ev, $event.target.value)" placeholder="Or paste a link to a picture on the web">
+                        <p x-show="imageLinkErrors[ev.id]" class="text-sm text-red-400 mt-1" x-text="imageLinkErrors[ev.id]"></p>
                     </div>
                 </div>
             </template>
             <button @click="addEvent()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add an event</button>
+            <button x-show="events.length > 0" @click="removeAll(events, 'events')" class="w-full py-3 border border-red-900 text-red-400 hover:border-red-500 font-bold uppercase tracking-wider">Delete all events</button>
         </div>
 
         <!-- Merch tab -->
@@ -417,25 +420,40 @@
                         <div><label class="adm-label">Price (£)</label><input class="adm-input" type="number" min="0" step="0.01" inputmode="decimal" x-model.number="it.price"></div>
                     </div>
                     <div>
-                        <label class="adm-label">Stripe payment link</label>
-                        <input class="adm-input" x-model.trim="it.stripeLink" placeholder="https://buy.stripe.com/...">
-                        <p x-show="linkProblem(it.stripeLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(it.stripeLink)"></p>
-                        <p x-show="it.stripeLink && !linkProblem(it.stripeLink)" class="text-xs text-zinc-500 mt-1">Stripe charges the price set on this link. If you change the price above, see the "Change a price" guide.</p>
+                        <label class="adm-label">Payment link (Stripe or Square)</label>
+                        <input class="adm-input" x-model.trim="it.paymentLink" placeholder="Paste your Stripe or Square link">
+                        <p x-show="linkProblem(it.paymentLink)" class="text-sm text-red-400 mt-1" x-text="linkProblem(it.paymentLink)"></p>
+                        <p x-show="it.paymentLink && !linkProblem(it.paymentLink)" class="text-xs text-zinc-500 mt-1" x-text="linkHint(it.paymentLink)"></p>
                     </div>
                     <div>
-                        <label class="adm-label">Photo</label>
-                        <div class="flex items-center gap-4">
+                        <label class="adm-label">Photo (PNG, JPG or web link)</label>
+                        <div class="flex flex-wrap items-center gap-4">
                             <img x-show="it.image" :src="it.image" alt="" class="w-16 h-16 object-cover border border-zinc-700">
                             <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, it)">
+                            <button x-show="it.image" @click="it.image = ''; dirty = true" class="adm-btn">Remove photo</button>
                         </div>
+                        <input class="adm-input mt-3" :value="imageLinkValue(it)" @input.stop @change="setImageLink(it, $event.target.value)" placeholder="Or paste a link to a picture on the web">
+                        <p x-show="imageLinkErrors[it.id]" class="text-sm text-red-400 mt-1" x-text="imageLinkErrors[it.id]"></p>
                     </div>
                 </div>
             </template>
             <button @click="addMerch()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add a merch item</button>
+            <button x-show="merch.length > 0" @click="removeAll(merch, 'merch')" class="w-full py-3 border border-red-900 text-red-400 hover:border-red-500 font-bold uppercase tracking-wider">Delete all merch</button>
         </div>
 
         <!-- Page text tab -->
         <div x-show="adminTab === 'text'" class="grid md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 border border-zinc-800 bg-zinc-950 p-4">
+                <label class="adm-label">Header logo (PNG, JPG or web link)</label>
+                <div class="flex flex-wrap items-center gap-4">
+                    <img x-show="logo.image" :src="logo.image" alt="" class="h-12 w-auto max-w-[220px] object-contain border border-zinc-700 p-1">
+                    <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, logo, 480, 'image/png')">
+                    <button x-show="logo.image" @click="logo.image = ''; dirty = true" class="adm-btn">Remove logo</button>
+                </div>
+                <input class="adm-input mt-3" :value="imageLinkValue(logo)" @input.stop @change="setImageLink(logo, $event.target.value)" placeholder="Or paste a link to your logo on the web">
+                <p x-show="imageLinkErrors[logo.id]" class="text-sm text-red-400 mt-1" x-text="imageLinkErrors[logo.id]"></p>
+                <p class="text-xs text-zinc-500 mt-2">Your logo replaces the skull and the logo text at the top of the page. A PNG with a see-through background looks best. Remove it to go back to the skull and text.</p>
+            </div>
             <div><label class="adm-label">Browser tab title</label><input class="adm-input" x-model="text.pageTitle"></div>
             <div><label class="adm-label">Logo text</label><input class="adm-input" x-model="text.brandBefore"></div>
             <div><label class="adm-label">Logo text (green part)</label><input class="adm-input" x-model="text.brandHighlight"></div>
@@ -466,16 +484,19 @@
                         <div><label class="adm-label">Button link (optional)</label><input class="adm-input" x-model.trim="s.buttonLink" placeholder="https://..."></div>
                     </div>
                     <div>
-                        <label class="adm-label">Photo (optional)</label>
-                        <div class="flex items-center gap-4">
+                        <label class="adm-label">Photo (optional: PNG, JPG or web link)</label>
+                        <div class="flex flex-wrap items-center gap-4">
                             <img x-show="s.image" :src="s.image" alt="" class="w-24 h-16 object-cover border border-zinc-700">
                             <input type="file" accept="image/*" class="text-sm" @change="pickImage($event, s)">
-                            <button x-show="s.image" @click="s.image = ''; dirty = true" class="adm-btn">Remove</button>
+                            <button x-show="s.image" @click="s.image = ''; dirty = true" class="adm-btn">Remove photo</button>
                         </div>
+                        <input class="adm-input mt-3" :value="imageLinkValue(s)" @input.stop @change="setImageLink(s, $event.target.value)" placeholder="Or paste a link to a picture on the web">
+                        <p x-show="imageLinkErrors[s.id]" class="text-sm text-red-400 mt-1" x-text="imageLinkErrors[s.id]"></p>
                     </div>
                 </div>
             </template>
             <button @click="addSection()" class="w-full py-3 border border-dashed border-zinc-600 hover:border-lime-400 font-bold uppercase tracking-wider">+ Add a section</button>
+            <button x-show="sections.length > 0" @click="removeAll(sections, 'extra sections')" class="w-full py-3 border border-red-900 text-red-400 hover:border-red-500 font-bold uppercase tracking-wider">Delete all sections</button>
         </div>
 
         <!-- Login tab -->
@@ -567,28 +588,36 @@
             </div>
 
             <div class="border border-zinc-800 bg-zinc-950">
-                <button @click="toggleHelp('stripe')" class="w-full text-left p-4 font-black uppercase">Connect Stripe and take payments</button>
+                <button @click="toggleHelp('stripe')" class="w-full text-left p-4 font-black uppercase">Take payments with Stripe or Square</button>
                 <div x-show="helpOpen === 'stripe'" class="px-4 pb-4">
-                    <p>You make one Stripe <b>Payment Link</b> for each thing you sell, then paste it next to that item here. This needs no extra hosting.</p>
-                    <p><b>Set up Stripe</b></p>
+                    <p>Each thing you sell gets <b>one payment link</b>, from either Stripe or Square. You can use different ones for different items. Paste the link next to the item and the page works out which provider it is. This needs no extra hosting.</p>
+                    <p><b>Using Stripe</b></p>
                     <ol>
                         <li>Make an account at <a href="https://dashboard.stripe.com/register" target="_blank" rel="noopener">stripe.com</a> and fill in your business and bank details so you can be paid.</li>
-                    </ol>
-                    <p><b>Make a link for each ticket or merch item</b></p>
-                    <ol>
-                        <li>In Stripe, open <a href="https://dashboard.stripe.com/payment-links" target="_blank" rel="noopener">Payment Links</a> and press <b>+ New</b>.</li>
+                        <li>Open <a href="https://dashboard.stripe.com/payment-links" target="_blank" rel="noopener">Payment Links</a> and press <b>+ New</b>.</li>
                         <li>Press <b>+ Add a new product</b>. Enter the name, photo and price in <b>GBP</b>, then press <b>Add product</b>.</li>
                         <li>Look through the options on that screen. Turn on the one that lets customers <b>adjust the quantity</b>. For merch, turn on <b>collecting the customer's address</b> so you know where to post it.</li>
                         <li>Press <b>Create link</b>, then copy the link.</li>
-                        <li>Back here, open <b>Events</b> or <b>Merch</b>, paste it into <b>Stripe payment link</b> on the right item, and press <b>Publish to live site</b>.</li>
-                        <li>Buy one yourself to check it works, then refund it from Stripe.</li>
                     </ol>
-                    <div class="adm-warn"><b>Never paste a Stripe "secret key"</b> (it starts with <b>sk_</b>) into this page. Only ever paste Payment Links.</div>
+                    <p><b>Using Square</b></p>
+                    <ol>
+                        <li>Make an account at <a href="https://squareup.com/gb/en" target="_blank" rel="noopener">squareup.com</a> and fill in your business and bank details so you can be paid.</li>
+                        <li>In the Square Dashboard, open <b>Payments &amp; orders</b> (it may just say <b>Payments</b>), then <b>Payment links</b>, and press <b>Create link</b>.</li>
+                        <li>Choose <b>Sell an event or class</b> for tickets or <b>Sell an item</b> for merch, then press <b>Continue</b>.</li>
+                        <li>Enter the title, choose or create the item, and set the price. Check there's a way for buyers to give their address if it's merch.</li>
+                        <li>Press <b>Save</b>. Back on the <b>Payment links</b> list, press <b>Share</b> next to your link and copy it.</li>
+                    </ol>
+                    <p><b>Then, for either one</b></p>
+                    <ol>
+                        <li>Back here, open <b>Events</b> or <b>Merch</b>, paste it into <b>Payment link</b> on the right item, and press <b>Publish to live site</b>.</li>
+                        <li>Buy one yourself to check it works, then refund it from your Stripe or Square dashboard.</li>
+                    </ol>
+                    <div class="adm-warn"><b>Only ever paste payment links here.</b> Never paste a Stripe "secret key" (starts with <b>sk_</b>) or a Square "access token" into this page.</div>
                     <p><b>Good to know</b></p>
                     <ul>
                         <li>Until an item has a link, its checkout is only a demonstration and takes no money.</li>
-                        <li>Every sale appears under <b>Payments</b> in Stripe. Use that as your guest list on the door.</li>
-                        <li>QR tickets are not created automatically from Stripe sales yet. That needs a small server, and the door scanner is a demonstration until then.</li>
+                        <li>Every sale appears in your Stripe or Square dashboard. Use that as your guest list on the door.</li>
+                        <li>QR tickets are not created automatically from online sales yet. That needs a small server, and the door scanner is a demonstration until then.</li>
                     </ul>
                 </div>
             </div>
@@ -597,11 +626,17 @@
                 <button @click="toggleHelp('images')" class="w-full text-left p-4 font-black uppercase">Add or change a photo</button>
                 <div x-show="helpOpen === 'images'" class="px-4 pb-4">
                     <ol>
-                        <li>Open <b>Events</b>, <b>Merch</b> or <b>Sections</b> and find the item.</li>
-                        <li>Under <b>Photo</b>, press the choose-file button and pick a picture. Big photos are shrunk for you.</li>
+                        <li>Open <b>Events</b>, <b>Merch</b> or <b>Sections</b> and find the item. For the logo at the top of the page, open <b>Page Text</b>.</li>
+                        <li>Under <b>Photo</b>, do one of these:
+                            <ul>
+                                <li><b>From your device:</b> press the choose-file button and pick a PNG or JPG. Big photos are shrunk for you.</li>
+                                <li><b>From the web:</b> right-click the picture (or press and hold on a phone), choose <b>Copy image address</b>, and paste it into the link box.</li>
+                            </ul>
+                        </li>
                         <li>Press <b>Preview site</b> to see how it looks, then <b>Publish to live site</b>.</li>
                     </ol>
                     <ul>
+                        <li>A web link only works for as long as that website keeps the picture up. For anything important, upload the file instead.</li>
                         <li>Wide photos suit events. Square photos suit merch.</li>
                         <li>Only use pictures you took or have permission to use.</li>
                     </ul>
@@ -615,12 +650,12 @@
                         <li>Open <b>Events</b> or <b>Merch</b> and type the new price, for example <b>17.50</b>. Leave out the £ sign.</li>
                         <li>Press <b>Publish to live site</b>.</li>
                     </ol>
-                    <div class="adm-warn"><b>If the item has a Stripe link, the price needs changing there too.</b> This page only shows the price. Stripe decides what the customer actually pays. Make a new Payment Link at the new price, paste it over the old one here, publish, then turn off the old link in Stripe.</div>
+                    <div class="adm-warn"><b>If the item has a payment link, the price needs changing there too.</b> This page only shows the price. Stripe or Square decides what the customer actually pays. Make a new payment link at the new price, paste it over the old one here, publish, then turn off the old link in Stripe or Square.</div>
                 </div>
             </div>
 
             <div class="border border-zinc-800 bg-zinc-950">
-                <button @click="toggleHelp('adding')" class="w-full text-left p-4 font-black uppercase">Add things to the page</button>
+                <button @click="toggleHelp('adding')" class="w-full text-left p-4 font-black uppercase">Add or remove things on the page</button>
                 <div x-show="helpOpen === 'adding'" class="px-4 pb-4">
                     <ul>
                         <li><b>New event:</b> open <b>Events</b>, press <b>+ Add an event</b>, fill it in.</li>
@@ -628,6 +663,8 @@
                         <li><b>New merch:</b> open <b>Merch</b>, press <b>+ Add a merch item</b>.</li>
                         <li><b>New block, like About or Line-up:</b> open <b>Sections</b>, press <b>+ Add a section</b>.</li>
                         <li><b>Change headings, logo or footer:</b> open <b>Page Text</b>.</li>
+                        <li><b>Remove one thing:</b> press <b>Delete</b> next to it, or <b>Remove photo</b> to take away just the picture.</li>
+                        <li><b>Remove a whole part, like merch if you have none:</b> press <b>Delete all merch</b> at the bottom of that tab. The whole part disappears from the page, and comes back as soon as you add something again.</li>
                     </ul>
                     <p>Press <b>Preview site</b> at any time to check your work, then <b>Publish to live site</b> when you're happy.</p>
                 </div>
@@ -758,7 +795,10 @@
         let iconTimer;
         new MutationObserver(() => {
             clearTimeout(iconTimer);
-            iconTimer = setTimeout(() => lucide.createIcons(), 30);
+            // Drawn icons keep their data-lucide attribute, so only look for undrawn ones.
+            iconTimer = setTimeout(() => {
+                if (document.querySelector('i[data-lucide]')) lucide.createIcons();
+            }, 30);
         }).observe(document.body, { childList: true, subtree: true });
 
         // Logins only decide which screens open in the browser. The starter login is
@@ -769,7 +809,7 @@
         const LOGIN_ITERATIONS = 600000;
         const GITHUB = { owner: 'Nafwise', repo: 'The-Secret-DnB-Society', branch: 'main' };
         const GITHUB_KEY_STORAGE = 'secretDnbGithubKey';
-        const SECRET_KEY_PATTERN = /\b[sr]k_(live|test)_/;
+        const SECRET_KEY_PATTERN = /\b[sr]k_(live|test)_|\bsq0[a-z]{3}-|\bEAAA[\w-]{20,}/;
 
         function secretApp() {
             return {
@@ -814,6 +854,7 @@
                 ghTokenInput: '',
                 connectMessage: '',
                 uploadedImages: {}, // photo data => its path in the repo
+                imageLinkErrors: {}, // item id => problem with its pasted image link
 
                 html5QrCode: null,
                 scanStatus: 'idle', // 'idle', 'valid', 'invalid', 'duplicate'
@@ -858,6 +899,12 @@
                             if (Array.isArray(data.merch)) this.merch = data.merch;
                             if (Array.isArray(data.sections)) this.sections = data.sections;
                             if (data.text) this.text = { ...this.text, ...data.text };
+                            if (data.logo) this.logo = { ...this.logo, ...data.logo };
+                            // Links published before Square support used the old field name.
+                            [...this.events, ...this.merch].forEach(item => {
+                                if (item.stripeLink && !item.paymentLink) item.paymentLink = item.stripeLink;
+                                delete item.stripeLink;
+                            });
                         }
                     } catch (e) {
                         console.info('Using built-in content:', e.message);
@@ -903,9 +950,38 @@
 
                 linkProblem(value) {
                     if (!value) return '';
-                    if (SECRET_KEY_PATTERN.test(value)) return "That's a Stripe SECRET key. Delete it from this box. Only paste Payment Links here.";
+                    if (SECRET_KEY_PATTERN.test(value)) return "That's a SECRET key. Delete it from this box. Only paste payment links here.";
                     if (!this.safeUrl(value)) return 'This should be a full link beginning with https://';
                     return '';
+                },
+
+                // Works out the provider from the link. Returns '' for anything else,
+                // such as a provider's custom domain, which still works as a link.
+                providerName(value) {
+                    const url = this.safeUrl(value);
+                    if (!url) return '';
+                    const host = new URL(url).hostname;
+                    if (host === 'stripe.com' || host.endsWith('.stripe.com')) return 'Stripe';
+                    if (host === 'square.link' || host.endsWith('.square.link') || host.endsWith('.squareup.com') || host.endsWith('.square.site')) return 'Square';
+                    return '';
+                },
+
+                payLabel(value) {
+                    const provider = this.providerName(value);
+                    return provider ? 'Pay with ' + provider : 'Pay now';
+                },
+
+                linkHint(value) {
+                    const provider = this.providerName(value) || 'Your payment provider';
+                    return provider + ' charges the price set on this link. If you change the price above, see the "Change a price" guide.';
+                },
+
+                get checkoutProviders() {
+                    return [...new Set(this.cart.map(item => this.providerName(item.paymentLink)).filter(Boolean))];
+                },
+
+                get checkoutLabel() {
+                    return this.checkoutProviders.length === 1 ? 'Checkout (' + this.checkoutProviders[0] + ')' : 'Checkout';
                 },
 
                 text: {
@@ -920,6 +996,7 @@
                 },
 
                 sections: [],
+                logo: { id: 'logo', title: 'logo', image: '' },
 
                 events: [
                     {
@@ -958,16 +1035,16 @@
                 },
 
                 checkout() {
-                    // With no Stripe links set up yet, keep the demo ticket flow.
-                    if (!this.cart.some(item => this.safeUrl(item.stripeLink))) {
+                    // With no payment links set up yet, keep the demo ticket flow.
+                    if (!this.cart.some(item => this.safeUrl(item.paymentLink))) {
                         this.view = 'success';
                         window.scrollTo(0,0);
                         return;
                     }
 
-                    // A single item goes straight to Stripe.
+                    // A single item goes straight to its payment page.
                     if (this.cart.length === 1) {
-                        window.location.href = this.safeUrl(this.cart[0].stripeLink);
+                        window.location.href = this.safeUrl(this.cart[0].paymentLink);
                         return;
                     }
 
@@ -1189,12 +1266,12 @@
                 },
 
                 addEvent() {
-                    this.events.push({ id: this.newId('evt'), type: 'ticket', title: 'NEW EVENT', date: '', location: '', price: 0, isUnderground: false, image: '', stripeLink: '' });
+                    this.events.push({ id: this.newId('evt'), type: 'ticket', title: 'NEW EVENT', date: '', location: '', price: 0, isUnderground: false, image: '', paymentLink: '' });
                     this.dirty = true;
                 },
 
                 addMerch() {
-                    this.merch.push({ id: this.newId('mch'), type: 'merch', title: 'NEW ITEM', price: 0, image: '', stripeLink: '' });
+                    this.merch.push({ id: this.newId('mch'), type: 'merch', title: 'NEW ITEM', price: 0, image: '', paymentLink: '' });
                     this.dirty = true;
                 },
 
@@ -1217,33 +1294,67 @@
                     this.dirty = true;
                 },
 
-                async pickImage(e, target) {
+                removeAll(list, label) {
+                    if (!confirm('Delete all ' + label + '? They will disappear from the page when you publish.')) return;
+                    list.splice(0, list.length);
+                    this.dirty = true;
+                },
+
+                imageLinkValue(item) {
+                    return /^https?:/.test(item.image || '') ? item.image : '';
+                },
+
+                // Only accepts a link once the browser has loaded it as a picture.
+                setImageLink(item, value) {
+                    const link = value.trim();
+                    this.imageLinkErrors[item.id] = '';
+                    if (!link) {
+                        if (this.imageLinkValue(item)) { item.image = ''; this.dirty = true; }
+                        return;
+                    }
+                    const url = this.safeUrl(link);
+                    if (!url) {
+                        this.imageLinkErrors[item.id] = 'This should be a full link beginning with https://';
+                        return;
+                    }
+                    const img = new Image();
+                    img.onload = () => { item.image = url; this.dirty = true; };
+                    img.onerror = () => {
+                        this.imageLinkErrors[item.id] = "That link isn't a picture. Right-click the picture itself and choose Copy image address.";
+                    };
+                    img.src = url;
+                },
+
+                async pickImage(e, target, maxSize, type) {
                     const file = e.target.files[0];
                     e.target.value = '';
                     if (!file) return;
                     try {
-                        target.image = await this.shrinkImage(file);
+                        target.image = await this.shrinkImage(file, maxSize, type);
+                        this.imageLinkErrors[target.id] = '';
                         this.dirty = true;
                     } catch (err) {
                         alert("Sorry, that photo couldn't be read. Try a JPG or PNG.");
                     }
                 },
 
-                shrinkImage(file) {
+                shrinkImage(file, maxSize = 1600, type = 'image/jpeg') {
                     return new Promise((resolve, reject) => {
                         const objectUrl = URL.createObjectURL(file);
                         const img = new Image();
                         img.onload = () => {
-                            const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+                            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
                             const canvas = document.createElement('canvas');
                             canvas.width = Math.round(img.width * scale);
                             canvas.height = Math.round(img.height * scale);
                             const ctx = canvas.getContext('2d');
-                            ctx.fillStyle = '#000';
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            if (type === 'image/jpeg') {
+                                ctx.fillStyle = '#000'; // JPEG can't be see-through
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            }
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                             URL.revokeObjectURL(objectUrl);
-                            resolve(canvas.toDataURL('image/jpeg', 0.82));
+                            resolve(canvas.toDataURL(type, 0.82));
                         };
                         img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('unreadable image')); };
                         img.src = objectUrl;
@@ -1327,10 +1438,10 @@
                         return;
                     }
 
-                    const allLinks = [...this.events, ...this.merch].map(item => item.stripeLink || '');
+                    const allLinks = [...this.events, ...this.merch].map(item => item.paymentLink || '');
                     if (allLinks.some(link => SECRET_KEY_PATTERN.test(link))) {
                         this.publishState = 'error';
-                        this.publishMessage = 'Not published: a Stripe SECRET key was pasted into a payment link box. Remove it first.';
+                        this.publishMessage = 'Not published: a SECRET key was pasted into a payment link box. Remove it first.';
                         return;
                     }
 
@@ -1338,18 +1449,19 @@
                     this.publishMessage = 'Publishing...';
                     try {
                         const content = JSON.parse(JSON.stringify({
-                            text: this.text, events: this.events, merch: this.merch, sections: this.sections
+                            text: this.text, logo: this.logo, events: this.events, merch: this.merch, sections: this.sections
                         }));
                         [...content.events, ...content.merch].forEach(item => { item.price = Number(item.price) || 0; });
 
                         // Swap new photos for file paths and queue them for upload.
                         const paths = { ...this.uploadedImages };
                         const newImages = [];
-                        [...content.events, ...content.merch, ...content.sections].forEach(item => {
+                        [...content.events, ...content.merch, ...content.sections, content.logo].forEach(item => {
                             if (!item.image || !item.image.startsWith('data:')) return;
                             if (!paths[item.image]) {
                                 const slug = (item.title || item.heading || 'photo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'photo';
-                                paths[item.image] = `images/${slug}-${Date.now()}-${newImages.length}.jpg`;
+                                const extension = item.image.startsWith('data:image/png') ? 'png' : 'jpg';
+                                paths[item.image] = `images/${slug}-${Date.now()}-${newImages.length}.${extension}`;
                                 newImages.push({ path: paths[item.image], base64: item.image.split(',')[1] });
                             }
                             item.image = paths[item.image];
