@@ -9,6 +9,11 @@
     "merchHeading": "Hardware (Merch)",
     "footer": "© 2026 The drum n bass society  built for the  underground."
   },
+  "logo": {
+    "id": "logo",
+    "title": "logo",
+    "image": ""
+  },
   "events": [
     {
       "id": "evt_1",
