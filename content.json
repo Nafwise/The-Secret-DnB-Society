@@ -52,5 +52,14 @@
       "image": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&q=80&w=800"
     }
   ],
-  "sections": []
+  "sections": [
+    {
+      "id": "sec_mw9y6jvh4jvu",
+      "heading": "NEW SECTION",
+      "body": "",
+      "image": "images/new-section-1794270410348-0.jpg",
+      "buttonText": "",
+      "buttonLink": ""
+    }
+  ]
 }
